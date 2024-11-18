@@ -1,0 +1,1 @@
+ALTER TABLE "variants" ALTER COLUMN "id" SET DATA TYPE varchar(30);

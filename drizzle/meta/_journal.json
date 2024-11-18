@@ -1,0 +1,41 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1731778599893,
+      "tag": "0000_marvelous_raider",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1731824518699,
+      "tag": "0001_jittery_callisto",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1731827131529,
+      "tag": "0002_brown_praxagora",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1731827199857,
+      "tag": "0003_messy_princess_powerful",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1731859158785,
+      "tag": "0004_gorgeous_jasper_sitwell",
+      "breakpoints": true
+    }
+  ]
+}
