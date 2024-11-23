@@ -1,10 +1,13 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
+  date,
   integer,
   pgTable,
   serial,
   smallint,
   text,
+  timestamp,
   varchar,
 } from "drizzle-orm/pg-core";
 import { nanoid } from "nanoid";
@@ -35,12 +38,23 @@ export const variants = pgTable("variants", {
   isDeleted: boolean("is_deleted").default(false),
 });
 
+export const purchaseItems = pgTable("purchase_items", {
+  id: serial("id").primaryKey(),
+  purchaseId: integer("purchase_id").references(() => purchases.id),
+  variantId: varchar("variant_id", { length: 30 }).references(
+    () => variants.id,
+  ),
+  quantity: integer("quantity").notNull(),
+  price: integer("price").notNull(),
+});
+
 export const purchases = pgTable("purchases", {
   id: serial("id").primaryKey(),
   customerId: integer("customer_id"),
-  variantId: integer("variant_id"),
-  quantity: integer("quantity").notNull(),
   price: integer("price").notNull(),
+  discountedPrice: integer("discounted_price").notNull(),
+  deletedAt: timestamp("deleted_at").default(sql`NULL`),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export type TDBCustomer = typeof customers.$inferSelect;

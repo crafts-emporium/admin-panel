@@ -1,9 +1,9 @@
 import { cn } from "@/lib/utils";
 import ModeToggle from "./mode-toggle";
 import { HTMLProps } from "react";
-
 import AppLogo from "./app-logo";
 import SidebarSheetTrigger from "./sidebar/sidebar-sheet-trigger";
+import { UserButton } from "@clerk/nextjs";
 
 export default function Navbar({
   className,
@@ -19,12 +19,13 @@ export default function Navbar({
       suppressHydrationWarning
       {...props}
     >
-      <div className="h-10 flex justify-between items-center">
-        <div className="flex items-center gap-2">
+      <div className="h-10 flex justify-between items-center gap-4">
+        <div className="flex w-full items-center gap-2">
           <SidebarSheetTrigger className="md:hidden inline-block" />
           <AppLogo className="md:hidden inline-block" />
         </div>
         <ModeToggle className="h-full w-10" />
+        <UserButton />
       </div>
     </nav>
   );

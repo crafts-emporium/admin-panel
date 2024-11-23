@@ -1,17 +1,15 @@
-export type TDBProductWithVariants = {
-  title: string;
-  description: string | null;
-  id: number;
-  isDeleted: boolean | null;
-  image: string | null;
-  variants: TDBVariants[];
+import { TDBProduct, TDBVariant } from "@/db/schema";
+
+export type TDBProductWithVariants = TDBProduct & {
+  variants: Omit<TDBVariant, "productId">[];
 };
 
-export type TDBVariants = {
-  size: number;
-  quantity: number;
-  price: number;
+export type TDBVariantWithProduct = {
   id: string;
-  isDeleted: boolean | null;
   productId: number | null;
+  size: number;
+  price: number;
+  quantity: number;
+  title: string;
+  image: string | null;
 };

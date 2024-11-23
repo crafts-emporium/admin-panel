@@ -4,7 +4,7 @@ import {
   PageTitle,
 } from "@/components/custom/page-header";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { MoreHorizontal, Pencil, Plus } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 import SearchInput from "./_components/search-input";
@@ -19,6 +19,12 @@ import {
 } from "@/components/ui/table";
 import { getCustomers } from "@/actions/customer";
 import { isActionError } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default async function Page({
   searchParams,
@@ -83,6 +89,7 @@ export default async function Page({
                 <TableHead className="p-5">Name</TableHead>
                 <TableHead>Phone</TableHead>
                 <TableHead>Address</TableHead>
+                <TableHead></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -93,6 +100,22 @@ export default async function Page({
                   </TableCell>
                   <TableCell>{customer.phone}</TableCell>
                   <TableCell>{customer.address}</TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button className="px-3" variant={"ghost"}>
+                          <MoreHorizontal />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        <Link href={`/customers/${customer.id}/edit`}>
+                          <DropdownMenuItem>
+                            <Pencil className="h-4 w-4 mr-2" /> Edit
+                          </DropdownMenuItem>
+                        </Link>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

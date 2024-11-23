@@ -41,7 +41,7 @@ export default function ProductForm({
     control: form.control,
     name: "variants",
   });
-  const { upload } = useUploadImage();
+  const { upload, compressImage } = useUploadImage();
 
   const handleRemoveVariant = (index: number) => {
     remove(index);
@@ -61,7 +61,11 @@ export default function ProductForm({
       const key = `${nanoid()}.${fileExt}`;
       form.setValue("imageId", key);
 
-      const status = await upload(key, file.type, file);
+      const compressedImage = await compressImage(file);
+
+      //@ts-ignore
+      const status = await upload(key, file.type, compressedImage);
+
       setUploadStatus(status);
     },
   });

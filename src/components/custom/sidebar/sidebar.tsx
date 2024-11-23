@@ -29,17 +29,19 @@ export default function Sidebar({
       )}
       {...props}
     >
-      <header className="flex gap-2 items-center mb-9">
-        <AppLogo />
-        <h1
-          className={cn(
-            "text-xl font-semibold font-sans whitespace-nowrap",
-            isSidebarMinimised ? "hidden" : "block",
-          )}
-        >
-          {AppName}
-        </h1>
-      </header>
+      <Link href={"/"}>
+        <header className="flex gap-2 items-center mb-9">
+          <AppLogo />
+          <h1
+            className={cn(
+              "text-xl font-semibold font-sans whitespace-nowrap",
+              isSidebarMinimised ? "hidden" : "block",
+            )}
+          >
+            {AppName}
+          </h1>
+        </header>
+      </Link>
       <main className="space-y-2 h-full overflow-y-auto">
         {sidebarItems.map((i) => (
           <Link href={i.href} key={i.id} className="block">

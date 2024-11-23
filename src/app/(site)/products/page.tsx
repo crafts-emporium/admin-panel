@@ -4,7 +4,7 @@ import {
   PageTitle,
 } from "@/components/custom/page-header";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Pencil, Plus } from "lucide-react";
+import { MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import { Suspense } from "react";
 import SearchInput from "./_components/search-input";
 import { isActionError } from "@/lib/utils";
@@ -26,6 +26,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import ProductDropdownMenu from "./_components/dropdown-menu";
 
 export default async function Page({
   searchParams,
@@ -61,8 +69,6 @@ export default async function Page({
     ...(params || {}),
     page: prev_page.toString(),
   }).toString()}`;
-
-  console.log({ products });
 
   return (
     <div className="space-y-10">
@@ -132,9 +138,10 @@ export default async function Page({
                           <div className="w-[100px] shrink-0">
                             <AdvancedImage
                               imageId={product.image || ""}
-                              width={100}
-                              height={100}
-                              className="w-full rounded-md object-cover"
+                              width={80}
+                              height={80}
+                              className="aspect-square rounded-md object-cover h-24 w-24"
+                              alt="Product Image"
                             />
                           </div>
                           <div className="space-y-2">
@@ -156,21 +163,11 @@ export default async function Page({
                         className="border-l text-center "
                         rowSpan={product.variants.length}
                       >
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant={"outline"} className="px-3">
-                              <MoreHorizontal />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <Link href={`products/edit/${product.id}`}>
-                              <DropdownMenuItem>
-                                <Pencil className="h-4 w-4" />
-                                <span>Edit</span>
-                              </DropdownMenuItem>
-                            </Link>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <ProductDropdownMenu product={product}>
+                          <Button variant={"outline"} className="px-3">
+                            <MoreHorizontal />
+                          </Button>
+                        </ProductDropdownMenu>
                       </TableCell>
                     )}
                   </TableRow>

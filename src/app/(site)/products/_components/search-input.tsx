@@ -7,10 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 
 export default function SearchInput() {
-  const [input, setInput] = useState<string>("");
-  const deboundedInput = useDebounce(input, 500);
   const count = useRef(0);
-  const { deleteParam, replace, setParam } = useSearchparamsChange();
+  const { deleteParam, replace, setParam, getParam } = useSearchparamsChange();
+  const [input, setInput] = useState<string>(getParam("query") || "");
+  const deboundedInput = useDebounce(input, 500);
 
   useEffect(() => {
     if (count.current === 0) {

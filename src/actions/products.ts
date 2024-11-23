@@ -1,55 +1,15 @@
 "use server";
 
 import { products, TDBProduct, TDBVariant, variants } from "@/db/schema";
+import { ProductsCache, ProductsCountCache } from "@/lib/cache/products";
 import { db } from "@/lib/db";
 import { ServerActionResponse } from "@/lib/utils";
 import { productSchema, TProduct } from "@/schema/products";
-import {
-  GetObjectCommand,
-  PutObjectCommand,
-  S3Client,
-} from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { Redis } from "@upstash/redis";
-import { desc, eq, gt, sql } from "drizzle-orm";
+import { and, count, desc, eq, gt, or, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { TDBProductWithVariants, TDBVariantWithProduct } from "@/types/product";
 
-type TProductWithVariants = TDBProduct & {
-  variants: Omit<TDBVariant, "productId">[];
-};
-
-const client = new S3Client({
-  endpoint: process.env.CLOUDFLARE_ENDPOINT,
-  region: "auto",
-  credentials: {
-    accessKeyId: process.env.CLOUDFLARE_ACCESS_KEY_ID,
-    secretAccessKey: process.env.CLOUDFLARE_ACCESS_KEY,
-  },
-});
-
-const redis = Redis.fromEnv();
 const defaultLimit = 10;
-
-const incrementCachedProductsCount = async () => {
-  return await redis.incr("products");
-};
-
-const decrementCachedProductsCount = async () => {
-  await redis.decr("products");
-};
-
-const getCachedProductsCount = async () => {
-  return Number(await redis.get("products"));
-};
-
-const getCachedProducts = async () => {
-  const products = await redis.get("products_data");
-  return (products as (TDBProduct & { variants: TDBVariant[] })[]) || [];
-};
-
-const setCachedProducts = async (data: TProductWithVariants[]) => {
-  await redis.set("products_data", data);
-};
 
 const getProductsFromDBWithoutQuery = async (
   offset: number = 0,
@@ -75,48 +35,19 @@ const getProductsFromDBWithoutQuery = async (
     .from(products)
     .innerJoin(variants, eq(variants.productId, products.id))
     .groupBy(products.id)
+    .orderBy(desc(products.id))
+    .where(and(eq(products.isDeleted, false), eq(variants.isDeleted, false)))
     .limit(limit)
     .offset(offset * limit);
 };
 
-export const getPreSignedMediaUrl = async (
-  key: string,
-  contentType: string,
-): Promise<ServerActionResponse<{ url: string }>> => {
-  try {
-    const command = new PutObjectCommand({
-      Bucket: process.env.CLOUDFLARE_BUCKET_NAME,
-      Key: key,
-      ContentType: contentType,
-    });
-
-    const preSignedUrl = await getSignedUrl(client, command, {
-      expiresIn: 600,
-    });
-
-    return { url: preSignedUrl };
-  } catch (error) {
-    return { error: "Error generating pre-signed URL" };
-  }
-};
-
-export const getSignedMediaUrl = async (
-  key: string,
-): Promise<ServerActionResponse<{ url: string }>> => {
-  try {
-    const command = new GetObjectCommand({
-      Bucket: process.env.CLOUDFLARE_BUCKET_NAME,
-      Key: key,
-    });
-
-    const preSignedUrl = await getSignedUrl(client, command, {
-      expiresIn: 600,
-    });
-
-    return { url: preSignedUrl };
-  } catch (error) {
-    return { error: "Error generating signed URL" };
-  }
+const getProductsCountFromDB = async () => {
+  return (
+    await db
+      .select({ count: count(products.id) })
+      .from(products)
+      .where(eq(products.isDeleted, false))
+  )[0].count;
 };
 
 export const createProduct = async (
@@ -163,15 +94,22 @@ export const createProduct = async (
     });
 
     // update the products cache if total number of cached products count is less than limit
-    await setCachedProducts(await getProductsFromDBWithoutQuery());
+    await ProductsCache.set(await getProductsFromDBWithoutQuery());
+
+    let total = await ProductsCountCache.get();
+    if (!total) {
+      total = await getProductsCountFromDB();
+      await ProductsCountCache.set(total);
+    } else {
+      total = await ProductsCountCache.incr();
+    }
+
     // revalidate the path
     revalidatePath("/products");
-    // increment the count in cache
-    await incrementCachedProductsCount();
 
     return {
       data: res.data,
-      total: (await getCachedProductsCount()) || 0,
+      total: (await ProductsCountCache.get()) || 0,
     };
   } catch (error) {
     console.log(error);
@@ -180,37 +118,102 @@ export const createProduct = async (
 };
 
 export const getProducts = async (
-  title?: string,
+  query?: string,
   offset: number = 0,
   limit: number = defaultLimit,
 ): Promise<
   ServerActionResponse<{
-    data: TProductWithVariants[];
+    data: TDBProductWithVariants[];
     total: number;
   }>
 > => {
   try {
     // get cached products count
-    const total = await getCachedProductsCount();
-    if (title?.trim() === "") {
+    let total = await ProductsCountCache.get();
+    if (!total) {
+      total = await getProductsCountFromDB();
+      await ProductsCountCache.set(Number(total));
+    }
+
+    if (query?.trim() === "") {
+      if (offset !== 0 || limit !== defaultLimit) {
+        return {
+          data: await getProductsFromDBWithoutQuery(offset, limit),
+          total: Number(total),
+        };
+      }
       // get cached products
-      const productsData =
-        offset !== 0 || limit !== defaultLimit
-          ? await getProductsFromDBWithoutQuery(offset, limit)
-          : await getCachedProducts();
+      const cachedProducts = await ProductsCache.get();
 
       // if  products are empty, get initial products from db
-      const productsDataDB = productsData.length
-        ? productsData
+      const productsDataDB = cachedProducts?.length
+        ? cachedProducts
         : await getProductsFromDBWithoutQuery();
+
+      // update the products cache if its empty
+      !cachedProducts && (await ProductsCache.set(productsDataDB));
+
       return {
         data: productsDataDB,
         total: Number(total),
       };
     }
 
+    // const totalCount
+
     // get products from db if not cached using fuzzy search
     const productsData = await db
+      .select({
+        id: products.id,
+        title: products.title,
+        description: products.description,
+        image: products.image,
+        isDeleted: products.isDeleted,
+        total: sql<number>`count(*) over()`,
+        variants: sql<Omit<TDBVariant, "productId">[]>`
+          json_agg(
+            json_build_object(
+              'id', ${variants.id}, 
+              'price', ${variants.price}, 
+              'quantity', ${variants.quantity}, 
+              'size', ${variants.size}, 
+              'isDeleted', ${variants.isDeleted}
+            )
+          )`,
+      })
+      .from(products)
+      .innerJoin(variants, eq(variants.productId, products.id))
+      .where(
+        and(
+          gt(sql`SIMILARITY(title, ${query})`, 0.3),
+          eq(products.isDeleted, false),
+          eq(variants.isDeleted, false),
+        ),
+      )
+      .orderBy(desc(sql`SIMILARITY(title, ${query})`))
+      .groupBy(products.id)
+      .limit(limit)
+      .offset(offset * limit);
+
+    console.log(productsData);
+
+    return {
+      data: productsData,
+      total: Number(productsData[0]?.total || 0),
+    };
+  } catch (error) {
+    console.log(error);
+    return {
+      error: "Error getting products",
+    };
+  }
+};
+
+export const getProduct = async (
+  id: string,
+): Promise<ServerActionResponse<{ data: TDBProductWithVariants }>> => {
+  try {
+    const product = await db
       .select({
         id: products.id,
         title: products.title,
@@ -229,15 +232,177 @@ export const getProducts = async (
       })
       .from(products)
       .innerJoin(variants, eq(variants.productId, products.id))
-      .where(gt(sql`SIMILARITY(title, ${title})`, 0.3))
-      .orderBy(desc(sql`SIMILARITY(title, ${title})`))
-      .groupBy(products.id)
-      .limit(limit)
-      .offset(offset * limit);
+      .where(and(eq(products.id, Number(id)), eq(variants.isDeleted, false)))
+      .groupBy(products.id);
 
     return {
-      data: productsData,
-      total: Number(total),
+      data: product[0],
+    };
+  } catch (error) {
+    return {
+      error: "Error getting product",
+    };
+  }
+};
+
+export const updateProduct = async ({
+  data,
+  id,
+}: {
+  data: Partial<TProduct>;
+  id: number;
+}): Promise<ServerActionResponse<{ message: string }>> => {
+  try {
+    await db.transaction(async (trx) => {
+      const prevVariants = await trx
+        .select()
+        .from(variants)
+        .where(eq(variants.productId, id));
+
+      const currentVariants = data.variants || [];
+
+      const removedVariants = prevVariants.filter(
+        (prevVariant) =>
+          !currentVariants.some(
+            (currentVariant) =>
+              Number(currentVariant.size) === prevVariant.size,
+          ),
+      );
+      const addedVariants = currentVariants.filter(
+        (currentVariant) =>
+          !prevVariants.some(
+            (prevVariant) => prevVariant.size === Number(currentVariant.size),
+          ),
+      );
+
+      const updatedVariants = currentVariants.filter((currentVariant) => {
+        const prevVariant = prevVariants.find(
+          (prevVariant) => prevVariant.size === Number(currentVariant.size),
+        );
+        return (
+          prevVariant &&
+          (prevVariant.price !== Number(currentVariant.price) ||
+            prevVariant.quantity !== Number(currentVariant.quantity))
+        );
+      });
+
+      await trx
+        .update(products)
+        .set({
+          ...(data.imageId ? { image: data.imageId } : {}),
+          ...(data.title ? { title: data.title } : {}),
+          ...(data.description ? { description: data.description } : {}),
+        })
+        .where(eq(products.id, id));
+
+      await Promise.all(
+        addedVariants.map(async (addedVariant) => {
+          await trx.insert(variants).values({
+            size: Number(addedVariant.size),
+            quantity: Number(addedVariant.quantity),
+            price: Number(addedVariant.price),
+            productId: id,
+          });
+        }),
+      );
+
+      await Promise.all(
+        updatedVariants.map(async (updatedVariant) => {
+          await trx.update(variants).set({
+            size: Number(updatedVariant.size),
+            quantity: Number(updatedVariant.quantity),
+            price: Number(updatedVariant.price),
+          });
+        }),
+      );
+
+      await Promise.all(
+        removedVariants.map(async (removedVariant) => {
+          await trx
+            .update(variants)
+            .set({
+              isDeleted: true,
+            })
+            .where(eq(variants.id, removedVariant.id));
+        }),
+      );
+    });
+
+    await ProductsCache.set(await getProductsFromDBWithoutQuery());
+    revalidatePath("/products");
+
+    return { message: "Product updated successfully" };
+  } catch (error) {
+    return {
+      error: "Error updating product",
+    };
+  }
+};
+
+export const deleteProduct = async (
+  id: number,
+): Promise<ServerActionResponse<{ message: string }>> => {
+  try {
+    await db
+      .update(products)
+      .set({ isDeleted: true })
+      .where(eq(products.id, id));
+    await ProductsCache.set(await getProductsFromDBWithoutQuery());
+    await ProductsCountCache.decr();
+    revalidatePath("/products");
+    return { message: "Product deleted successfully" };
+  } catch (error) {
+    return {
+      error: "Error deleting product",
+    };
+  }
+};
+
+export const getVariantsWithproductInfo = async (
+  query: string,
+  offset: number = 0,
+  limit: number = 10,
+): Promise<ServerActionResponse<{ data: TDBVariantWithProduct[] }>> => {
+  try {
+    if (query.trim() === "") return { data: [] };
+    const res = await db
+      .select({
+        id: variants.id,
+        productId: products.id,
+        title: products.title,
+        size: variants.size,
+        price: variants.price,
+        quantity: variants.quantity,
+        image: products.image,
+      })
+      .from(products)
+      .innerJoin(variants, eq(variants.productId, products.id))
+      .where(
+        and(
+          or(
+            gt(sql`SIMILARITY(title, ${query})`, 0.3),
+            gt(sql`SIMILARITY(size::TEXT, ${query})`, 0.3),
+          ),
+          eq(products.isDeleted, false),
+          eq(variants.isDeleted, false),
+        ),
+      )
+      .groupBy(products.id, variants.id)
+      .orderBy(
+        desc(sql`
+          GREATEST(
+            SIMILARITY(title, ${query}),
+            SIMILARITY(size::TEXT, ${query})
+          )
+        `),
+      )
+      .limit(limit)
+      .offset(offset);
+
+    console.log(res);
+
+    return {
+      data: res,
     };
   } catch (error) {
     console.log(error);

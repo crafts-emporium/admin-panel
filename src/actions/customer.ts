@@ -4,36 +4,11 @@ import { customers, TDBCustomer } from "@/db/schema";
 import { db } from "@/lib/db";
 import { ServerActionResponse } from "@/lib/utils";
 import { customerSchema, TCustomer } from "@/schema/customer";
-import { asc, desc, eq, gt, sql } from "drizzle-orm";
-import { Redis } from "@upstash/redis";
+import { count, desc, eq, gt, or, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { CustomersCache, CustomersCountCache } from "@/lib/cache/customers";
 
-const redis = Redis.fromEnv();
 const defaultLimit = 10;
-
-const getCachedCustomersCount = async () => {
-  const total = await redis.get("customers");
-  return Number(total || 0);
-};
-
-const incrementCachedCustomersCount = async () => {
-  return await redis.incr("customers");
-};
-
-const decrementCachedCustomersCount = async () => {
-  await redis.decr("customers");
-};
-
-const getCachedCustomers = async () => {
-  const customers = await redis.get("customers_data");
-  return (customers as TDBCustomer[]) || [];
-};
-
-const setCachedCustomers = async (data: any) => {
-  try {
-    await redis.set("customers_data", data);
-  } catch (error) {}
-};
 
 const getCustomersFromDBWithoutQuery = async (
   offset: number = 0,
@@ -43,8 +18,13 @@ const getCustomersFromDBWithoutQuery = async (
     .select()
     .from(customers)
     .limit(limit)
-    .orderBy(asc(customers.id))
+    .orderBy(desc(customers.id))
     .offset(offset * limit);
+};
+
+const getCustomersCountFromDB = async () => {
+  return (await db.select({ count: count(customers.id) }).from(customers))[0]
+    ?.count;
 };
 
 export const createCustomer = async (
@@ -64,11 +44,18 @@ export const createCustomer = async (
         address: data.address,
       })
       .returning();
-    //increment the count in cache
-    const total = await incrementCachedCustomersCount();
+    // check the cached customers count
+    let total = await CustomersCountCache.get();
+    if (!total) {
+      total = await getCustomersCountFromDB();
+      await CustomersCountCache.set(total);
+    } else {
+      //increment the count in cache
+      total = await CustomersCountCache.incr();
+    }
 
     //update the customers data cache
-    await setCachedCustomers(await getCustomersFromDBWithoutQuery());
+    await CustomersCache.set(await getCustomersFromDBWithoutQuery());
     //revalidate the path
     revalidatePath("/customers");
 
@@ -104,9 +91,13 @@ export const updateCustomer = async (
       .returning();
 
     //update the customers data cache
-    await setCachedCustomers(await getCustomersFromDBWithoutQuery());
+    await CustomersCache.set(await getCustomersFromDBWithoutQuery());
 
-    const total = await getCachedCustomersCount();
+    let total = await CustomersCountCache.get();
+    if (!total) {
+      total = await getCustomersCountFromDB();
+      await CustomersCountCache.set(total);
+    }
 
     //revalidate the path
     revalidatePath("/customers");
@@ -128,10 +119,16 @@ export const deleteCustomer = async (
   try {
     // delete from db
     await db.delete(customers).where(eq(customers.id, id));
-    // decrement the count in cache
-    const total = await decrementCachedCustomersCount();
+    let total = await CustomersCountCache.get();
+    if (!total) {
+      total = await getCustomersCountFromDB();
+      await CustomersCountCache.set(total);
+    } else {
+      total = await CustomersCountCache.decr();
+    }
+
     // update the customers data cache
-    await setCachedCustomers(await getCustomersFromDBWithoutQuery());
+    await CustomersCache.set(await getCustomersFromDBWithoutQuery());
     // revalidate the path
     revalidatePath("/customers");
 
@@ -147,24 +144,30 @@ export const deleteCustomer = async (
 };
 
 export const getCustomers = async (
-  name?: string,
+  query?: string,
   offset: number = 0,
   limit: number = defaultLimit,
 ): Promise<ServerActionResponse<{ data: TDBCustomer[]; total: number }>> => {
   try {
     // get cached customers count
-    const total = await getCachedCustomersCount();
-    if (name?.trim() === "") {
+    let total = await CustomersCountCache.get();
+    if (!total) {
+      total = await getCustomersCountFromDB();
+      await CustomersCountCache.set(Number(total));
+    }
+    if (query?.trim() === "") {
       // get cached customers
       const customerData =
         offset !== 0 || limit !== defaultLimit
           ? await getCustomersFromDBWithoutQuery(offset, limit)
-          : await getCachedCustomers();
+          : await CustomersCache.get();
 
       // if cached customers are empty, get initial customers from db
-      const customersDataDB = customerData.length
+      const customersDataDB = customerData?.length
         ? customerData
         : await getCustomersFromDBWithoutQuery();
+      await CustomersCache.set(customersDataDB);
+
       return {
         data: customersDataDB,
         total: Number(total),
@@ -175,8 +178,19 @@ export const getCustomers = async (
     const customerData = await db
       .select()
       .from(customers)
-      .where(gt(sql`SIMILARITY(name, ${name})`, 0.3))
-      .orderBy(desc(sql`SIMILARITY(name, ${name})`))
+      .where(
+        or(
+          gt(sql`SIMILARITY(${customers.name}, ${query})`, 0.1),
+          gt(sql`SIMILARITY(${customers.phone}, ${query})`, 0.1),
+        ),
+      )
+      .orderBy(
+        desc(sql`
+          GREATEST(
+            SIMILARITY(${customers.name}, ${query}),
+            SIMILARITY(${customers.phone}, ${query})
+          )`),
+      )
       .limit(limit)
       .offset(offset * limit);
 
@@ -185,8 +199,25 @@ export const getCustomers = async (
       total: Number(total),
     };
   } catch (error) {
+    console.log(error);
     return {
       error: "Error getting customers",
+    };
+  }
+};
+
+export const getCustomer = async (
+  id: string,
+): Promise<ServerActionResponse<{ data: TDBCustomer }>> => {
+  try {
+    const customer = await db
+      .select()
+      .from(customers)
+      .where(eq(customers.id, Number(id)));
+    return { data: customer[0] };
+  } catch (error) {
+    return {
+      error: "Error getting customer",
     };
   }
 };

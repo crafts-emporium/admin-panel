@@ -1,10 +1,11 @@
 "use client";
 
-import { getSignedMediaUrl } from "@/actions/products";
+import { getSignedMediaUrl } from "@/actions/url";
 import { cn, isActionError } from "@/lib/utils";
 import Image, { ImageProps } from "next/image";
 import { useEffect, useState } from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import fallback from "@/../public/fallback.jpg";
+import { StaticImport } from "next/dist/shared/lib/get-img-props";
 
 export default function AdvancedImage({
   className,
@@ -13,7 +14,9 @@ export default function AdvancedImage({
   file,
   ...props
 }: Partial<ImageProps> & { imageId?: string; file?: File }) {
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | StaticImport | null>(
+    src || null,
+  );
 
   useEffect(() => {
     imageId &&
@@ -39,6 +42,11 @@ export default function AdvancedImage({
 
   return (
     // @ts-ignore
-    <img src={imageUrl || src} className={cn(className)} {...props} />
+    <Image
+      src={imageUrl || fallback}
+      className={cn(className)}
+      {...props}
+      onError={() => setImageUrl(fallback)}
+    />
   );
 }
