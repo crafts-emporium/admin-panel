@@ -9,9 +9,36 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { customers, purchases } from "@/db/schema";
+import { formatNumber } from "@/functions/format-number";
+import { db } from "@/lib/db";
+import { count, desc, eq, sum } from "drizzle-orm";
 import { UsersRound } from "lucide-react";
 
-export default function Page() {
+export default async function Page() {
+  const topCustomers = await db
+    .select({
+      details: {
+        id: customers.id,
+        name: customers.name,
+        phone: customers.phone,
+      },
+      orders: count(purchases.id),
+      revenue: sum(purchases.discountedPrice),
+    })
+    .from(purchases)
+    .innerJoin(customers, eq(purchases.customerId, customers.id))
+    .groupBy(customers.id)
+    .orderBy(desc(sum(purchases.discountedPrice)))
+    .limit(5);
+  const totalOrders = topCustomers.reduce(
+    (total, current) => total + current.orders,
+    0,
+  );
+  const totalRevenue = topCustomers.reduce(
+    (total, current) => total + Number(current.revenue),
+    0,
+  );
   return (
     <Card>
       <CardHeader className="flex-row space-y-0 justify-between items-center">
@@ -28,21 +55,28 @@ export default function Page() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {Array.from({ length: 5 }).map((_, index) => (
+            {topCustomers.map((customer, index) => (
               <TableRow key={index}>
-                <TableCell className="flex items-center gap-2 py-3.5">
-                  <span>John Doe</span>
+                <TableCell className="space-y-0.5 py-1.5">
+                  <p className="text-base">{customer.details.name}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {customer.details.phone}
+                  </p>
                 </TableCell>
-                <TableCell>10</TableCell>
-                <TableCell>₹1,200</TableCell>
+                <TableCell>{customer.orders}</TableCell>
+                <TableCell>₹{formatNumber(Number(customer.revenue))}</TableCell>
               </TableRow>
             ))}
           </TableBody>
           <TableFooter>
             <TableRow>
               <TableCell colSpan={1}></TableCell>
-              <TableCell className="text-base">50</TableCell>
-              <TableCell className="font-semibold text-base">₹4,800</TableCell>
+              <TableCell className="text-base">
+                {formatNumber(totalOrders)}
+              </TableCell>
+              <TableCell className="font-semibold text-base">
+                ₹{formatNumber(totalRevenue)}
+              </TableCell>
             </TableRow>
           </TableFooter>
         </Table>

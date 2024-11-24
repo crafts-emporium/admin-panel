@@ -105,11 +105,11 @@ export default function SaleForm({
     form.setValue("totalPrice", totalPrice?.toString());
 
     // set discounted price if it doesn't exists or is greater than total price
-    form.getValues("totalDiscountedPrice")
-      ? Number(form.getValues("totalDiscountedPrice")) > Number(totalPrice)
-        ? form.setValue("totalDiscountedPrice", totalPrice?.toString())
-        : null
-      : form.setValue("totalDiscountedPrice", totalPrice?.toString());
+    // form.getValues("totalDiscountedPrice")
+    //   ? Number(form.getValues("totalDiscountedPrice")) > Number(totalPrice)
+    //     ? form.setValue("totalDiscountedPrice", totalPrice?.toString())
+    //     : null
+    //   : form.setValue("totalDiscountedPrice", totalPrice?.toString());
   }, [totalPrice]);
 
   return (

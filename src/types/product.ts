@@ -13,3 +13,12 @@ export type TDBVariantWithProduct = {
   title: string;
   image: string | null;
 };
+
+export type ProductSale = {
+  id: string;
+  size: number;
+  price: number;
+  stock: number;
+  sold: string | null;
+  revenue: string | null;
+};

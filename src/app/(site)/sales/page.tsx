@@ -4,7 +4,7 @@ import {
   PageTitle,
 } from "@/components/custom/page-header";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Info, MoreHorizontal, Plus } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 import SearchInput from "./_components/search-input";
@@ -20,6 +20,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { format } from "date-fns";
+import { formatNumber } from "@/functions/format-number";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default async function Page({
   searchParams,
@@ -37,7 +44,7 @@ export default async function Page({
 
   const { data: sales, total: total_records } = res;
 
-  console.log(sales);
+  // console.log(sales);
 
   const prev_page = page > 1 ? page - 1 : 1;
 
@@ -95,11 +102,40 @@ export default async function Page({
               {sales.map((sale) => (
                 <TableRow key={sale.id}>
                   <TableCell className="p-5">{sale.id}</TableCell>
-                  <TableCell>{sale.customer}</TableCell>
-                  <TableCell>{sale.totalPrice}</TableCell>
-                  <TableCell>{sale.totalDiscountedPrice}</TableCell>
+                  <TableCell>
+                    <Link
+                      href={
+                        sale.customer?.id
+                          ? `/customers/${sale.customer?.id}`
+                          : ""
+                      }
+                    >
+                      {sale.customer?.name}
+                    </Link>
+                  </TableCell>
+                  <TableCell>₹{formatNumber(sale.totalPrice)}</TableCell>
+                  <TableCell>
+                    ₹{formatNumber(sale.totalDiscountedPrice)}
+                  </TableCell>
                   <TableCell>
                     {sale.createdAt && format(new Date(sale.createdAt), "PPP")}
+                  </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant={"outline"} className="px-3">
+                          <MoreHorizontal />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <Link href={`/sales/${sale.id}`}>
+                          <DropdownMenuItem>
+                            <Info className="mr-2 h-4 w-4" />
+                            <span>Info</span>
+                          </DropdownMenuItem>
+                        </Link>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))}

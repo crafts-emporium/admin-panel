@@ -17,14 +17,20 @@ export const customers = pgTable("customers", {
   name: varchar("name", { length: 40 }).notNull(),
   phone: varchar("phone", { length: 15 }),
   address: text("address"),
+  createdAt: timestamp("created_at")
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const products = pgTable("products", {
   id: serial("id").primaryKey(),
   title: varchar("title", { length: 100 }).notNull(),
   description: text("description"),
-  isDeleted: boolean("is_deleted").default(false),
+  deletedAt: date("deleted_at").default(sql`NULL`),
   image: text("image"),
+  createdAt: timestamp("created_at")
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const variants = pgTable("variants", {
@@ -35,7 +41,10 @@ export const variants = pgTable("variants", {
   quantity: integer("quantity").notNull(),
   price: integer("price").notNull(),
   size: smallint("size").notNull(),
-  isDeleted: boolean("is_deleted").default(false),
+  createdAt: timestamp("created_at")
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
+  deletedAt: timestamp("deleted_at").default(sql`NULL`),
 });
 
 export const purchaseItems = pgTable("purchase_items", {
@@ -54,7 +63,9 @@ export const purchases = pgTable("purchases", {
   price: integer("price").notNull(),
   discountedPrice: integer("discounted_price").notNull(),
   deletedAt: timestamp("deleted_at").default(sql`NULL`),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+  createdAt: timestamp("created_at")
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
 });
 
 export type TDBCustomer = typeof customers.$inferSelect;

@@ -1,12 +1,20 @@
 "use server";
 
-import { customers, TDBCustomer } from "@/db/schema";
+import {
+  customers,
+  products,
+  purchaseItems,
+  purchases,
+  TDBCustomer,
+  variants,
+} from "@/db/schema";
 import { db } from "@/lib/db";
 import { ServerActionResponse } from "@/lib/utils";
 import { customerSchema, TCustomer } from "@/schema/customer";
 import { count, desc, eq, gt, or, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { CustomersCache, CustomersCountCache } from "@/lib/cache/customers";
+import { CustomerSale, CustomerSaleItem } from "@/types/customer";
 
 const defaultLimit = 10;
 
@@ -22,7 +30,7 @@ const getCustomersFromDBWithoutQuery = async (
     .offset(offset * limit);
 };
 
-const getCustomersCountFromDB = async () => {
+export const getCustomersCountFromDB = async () => {
   return (await db.select({ count: count(customers.id) }).from(customers))[0]
     ?.count;
 };
@@ -176,7 +184,14 @@ export const getCustomers = async (
 
     // get customers from db if not cached using fuzzy search
     const customerData = await db
-      .select()
+      .select({
+        id: customers.id,
+        name: customers.name,
+        phone: customers.phone,
+        address: customers.address,
+        createdAt: customers.createdAt,
+        total: sql`count(*) over()`,
+      })
       .from(customers)
       .where(
         or(
@@ -196,7 +211,7 @@ export const getCustomers = async (
 
     return {
       data: customerData,
-      total: Number(total),
+      total: Number(customerData[0]?.total),
     };
   } catch (error) {
     console.log(error);
@@ -218,6 +233,44 @@ export const getCustomer = async (
   } catch (error) {
     return {
       error: "Error getting customer",
+    };
+  }
+};
+
+export const getCustomerSaleDetails = async (
+  id: string,
+): Promise<ServerActionResponse<{ data: CustomerSale[] }>> => {
+  try {
+    const data = await db
+      .select({
+        id: purchases.id,
+        totalPrice: purchases.price,
+        totalDiscountedPrice: purchases.discountedPrice,
+        createdAt: purchases.createdAt,
+        items: sql<CustomerSaleItem[]>`
+      json_agg(
+        json_build_object(
+          'productId', ${products.id},
+          'title', ${products.title},
+          'image', ${products.image},
+          'size', ${variants.size},
+          'quantity', ${purchaseItems.quantity},
+          'price', ${purchaseItems.price}
+        )          
+      )`,
+      })
+      .from(purchases)
+      .innerJoin(purchaseItems, eq(purchases.id, purchaseItems.purchaseId))
+      .innerJoin(variants, eq(variants.id, purchaseItems.variantId))
+      .innerJoin(products, eq(products.id, variants.productId))
+      .where(eq(purchases.customerId, Number(id)))
+      .groupBy(purchases.id)
+      .orderBy(desc(purchases.createdAt));
+    return { data };
+  } catch (error) {
+    console.log(error);
+    return {
+      error: "Error getting customer sale details",
     };
   }
 };

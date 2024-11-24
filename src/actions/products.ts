@@ -1,13 +1,34 @@
 "use server";
 
-import { products, TDBProduct, TDBVariant, variants } from "@/db/schema";
+import {
+  products,
+  purchaseItems,
+  TDBProduct,
+  TDBVariant,
+  variants,
+} from "@/db/schema";
 import { ProductsCache, ProductsCountCache } from "@/lib/cache/products";
 import { db } from "@/lib/db";
 import { ServerActionResponse } from "@/lib/utils";
 import { productSchema, TProduct } from "@/schema/products";
-import { and, count, desc, eq, gt, or, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gt,
+  isNull,
+  or,
+  sql,
+  sum,
+} from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { TDBProductWithVariants, TDBVariantWithProduct } from "@/types/product";
+import {
+  ProductSale,
+  TDBProductWithVariants,
+  TDBVariantWithProduct,
+} from "@/types/product";
 
 const defaultLimit = 10;
 
@@ -21,14 +42,15 @@ const getProductsFromDBWithoutQuery = async (
       title: products.title,
       description: products.description,
       image: products.image,
-      isDeleted: products.isDeleted,
+      deletedAt: products.deletedAt,
+      createdAt: products.createdAt,
       variants: sql<Omit<TDBVariant, "productId">[]>`json_agg(
         json_build_object(
           'id', ${variants.id}, 
           'price', ${variants.price}, 
           'quantity', ${variants.quantity}, 
           'size', ${variants.size}, 
-          'isDeleted', ${variants.isDeleted}
+          'deletedAt', ${variants.deletedAt}
         )
       )`,
     })
@@ -36,17 +58,17 @@ const getProductsFromDBWithoutQuery = async (
     .innerJoin(variants, eq(variants.productId, products.id))
     .groupBy(products.id)
     .orderBy(desc(products.id))
-    .where(and(eq(products.isDeleted, false), eq(variants.isDeleted, false)))
+    .where(and(isNull(products.deletedAt), isNull(variants.deletedAt)))
     .limit(limit)
     .offset(offset * limit);
 };
 
-const getProductsCountFromDB = async () => {
+export const getProductsCountFromDB = async () => {
   return (
     await db
       .select({ count: count(products.id) })
       .from(products)
-      .where(eq(products.isDeleted, false))
+      .where(isNull(products.deletedAt))
   )[0].count;
 };
 
@@ -168,7 +190,8 @@ export const getProducts = async (
         title: products.title,
         description: products.description,
         image: products.image,
-        isDeleted: products.isDeleted,
+        deletedAt: products.deletedAt,
+        createdAt: products.createdAt,
         total: sql<number>`count(*) over()`,
         variants: sql<Omit<TDBVariant, "productId">[]>`
           json_agg(
@@ -177,7 +200,7 @@ export const getProducts = async (
               'price', ${variants.price}, 
               'quantity', ${variants.quantity}, 
               'size', ${variants.size}, 
-              'isDeleted', ${variants.isDeleted}
+              'deletedAt', ${variants.deletedAt}
             )
           )`,
       })
@@ -186,8 +209,8 @@ export const getProducts = async (
       .where(
         and(
           gt(sql`SIMILARITY(title, ${query})`, 0.3),
-          eq(products.isDeleted, false),
-          eq(variants.isDeleted, false),
+          isNull(products.deletedAt),
+          isNull(variants.deletedAt),
         ),
       )
       .orderBy(desc(sql`SIMILARITY(title, ${query})`))
@@ -195,7 +218,7 @@ export const getProducts = async (
       .limit(limit)
       .offset(offset * limit);
 
-    console.log(productsData);
+    // console.log(productsData);
 
     return {
       data: productsData,
@@ -219,20 +242,21 @@ export const getProduct = async (
         title: products.title,
         description: products.description,
         image: products.image,
-        isDeleted: products.isDeleted,
+        deletedAt: products.deletedAt,
+        createdAt: products.createdAt,
         variants: sql<Omit<TDBVariant, "productId">[]>`json_agg(
             json_build_object(
               'id', ${variants.id}, 
               'price', ${variants.price}, 
               'quantity', ${variants.quantity}, 
               'size', ${variants.size}, 
-              'isDeleted', ${variants.isDeleted}
+              'deletedAt', ${variants.deletedAt}
             )
           )`,
       })
       .from(products)
       .innerJoin(variants, eq(variants.productId, products.id))
-      .where(and(eq(products.id, Number(id)), eq(variants.isDeleted, false)))
+      .where(and(eq(products.id, Number(id)), isNull(variants.deletedAt)))
       .groupBy(products.id);
 
     return {
@@ -321,7 +345,7 @@ export const updateProduct = async ({
           await trx
             .update(variants)
             .set({
-              isDeleted: true,
+              deletedAt: sql`CURRENT_DATE`,
             })
             .where(eq(variants.id, removedVariant.id));
         }),
@@ -345,7 +369,7 @@ export const deleteProduct = async (
   try {
     await db
       .update(products)
-      .set({ isDeleted: true })
+      .set({ deletedAt: sql`CURRENT_DATE` })
       .where(eq(products.id, id));
     await ProductsCache.set(await getProductsFromDBWithoutQuery());
     await ProductsCountCache.decr();
@@ -383,8 +407,8 @@ export const getVariantsWithproductInfo = async (
             gt(sql`SIMILARITY(title, ${query})`, 0.3),
             gt(sql`SIMILARITY(size::TEXT, ${query})`, 0.3),
           ),
-          eq(products.isDeleted, false),
-          eq(variants.isDeleted, false),
+          isNull(products.deletedAt),
+          isNull(variants.deletedAt),
         ),
       )
       .groupBy(products.id, variants.id)
@@ -399,7 +423,7 @@ export const getVariantsWithproductInfo = async (
       .limit(limit)
       .offset(offset);
 
-    console.log(res);
+    // console.log(res);
 
     return {
       data: res,
@@ -409,5 +433,32 @@ export const getVariantsWithproductInfo = async (
     return {
       error: "Error getting products",
     };
+  }
+};
+
+export const getProductVariants = async (
+  id: string,
+): Promise<ServerActionResponse<{ data: ProductSale[] }>> => {
+  try {
+    const res = await db
+      .select({
+        id: variants.id,
+        size: variants.size,
+        stock: variants.quantity,
+        price: variants.price,
+        sold: sum(purchaseItems.quantity),
+        revenue: sum(
+          sql<number>`${purchaseItems.quantity} * ${purchaseItems.price}`,
+        ),
+      })
+      .from(variants)
+      .leftJoin(purchaseItems, eq(purchaseItems.variantId, variants.id))
+      .where(eq(variants.productId, Number(id)))
+      .groupBy(variants.id)
+      .orderBy(asc(variants.size));
+
+    return { data: res };
+  } catch (error) {
+    return { error: "Error getting product sale details" };
   }
 };

@@ -11,12 +11,42 @@ import {
 import { Amphora } from "lucide-react";
 import Image from "next/image";
 import handcraft from "@/../public/istockphoto.jpg";
+import { db } from "@/lib/db";
+import { products, purchaseItems, variants } from "@/db/schema";
+import { desc, eq, isNull, sql, sum } from "drizzle-orm";
+import AdvancedImage from "@/components/custom/advanced-image";
+import { formatNumber } from "@/functions/format-number";
 
-export default function Page() {
+export default async function Page() {
+  const topProducts = await db
+    .select({
+      variantId: variants.id,
+      title: products.title,
+      image: products.image,
+      size: variants.size,
+      quantity: sum(purchaseItems.quantity),
+      revenue: sum(sql`${purchaseItems.quantity} * ${variants.price}`),
+    })
+    .from(purchaseItems)
+    .innerJoin(variants, eq(variants.id, purchaseItems.variantId))
+    .innerJoin(products, eq(products.id, variants.productId))
+    .where(isNull(variants.deletedAt))
+    .orderBy(desc(sum(purchaseItems.quantity)))
+    .groupBy(variants.id, products.title, products.image, variants.size)
+    .limit(5);
+
+  const totalQuantity = topProducts.reduce(
+    (total, current) => total + Number(current.quantity),
+    0,
+  );
+  const totalRevenue = topProducts.reduce(
+    (total, current) => total + Number(current.revenue),
+    0,
+  );
   return (
     <Card>
       <CardHeader className="flex-row space-y-0 justify-between items-center">
-        <CardTitle>Top Products</CardTitle>
+        <CardTitle>Top Sold Products</CardTitle>
         <Amphora />
       </CardHeader>
       <CardContent>
@@ -30,29 +60,37 @@ export default function Page() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {Array.from({ length: 5 }).map((_, idx) => (
+            {topProducts.map((topProduct, idx) => (
               <TableRow key={idx}>
                 <TableCell className="flex items-center gap-2">
-                  <Image
+                  <AdvancedImage
                     alt="product-image"
-                    src={handcraft}
+                    imageId={topProduct.image || ""}
                     width={50}
                     height={50}
-                    className="rounded-md sm:inline-block hidden"
+                    className="rounded-md sm:inline-block hidden h-10 w-16 object-contain"
                   />
-                  <p>Vas</p>
+                  <p>{topProduct.title}</p>
                 </TableCell>
-                <TableCell>45 inch</TableCell>
-                <TableCell>10</TableCell>
-                <TableCell>₹1,200</TableCell>
+                <TableCell>{topProduct.size} inch</TableCell>
+                <TableCell>
+                  {formatNumber(Number(topProduct.quantity))}
+                </TableCell>
+                <TableCell>
+                  ₹{formatNumber(Number(topProduct.revenue))}
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
           <TableFooter>
             <TableRow>
               <TableCell colSpan={2}></TableCell>
-              <TableCell className="text-base">50</TableCell>
-              <TableCell className="font-semibold text-base">₹4,800</TableCell>
+              <TableCell className="text-base">
+                {formatNumber(totalQuantity)}
+              </TableCell>
+              <TableCell className="font-semibold text-base">
+                ₹{formatNumber(totalRevenue)}
+              </TableCell>
             </TableRow>
           </TableFooter>
         </Table>

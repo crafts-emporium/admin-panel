@@ -61,7 +61,7 @@ const SearchCombo: React.FC<
   };
 
   const handleListChange = (list: any[]) => {
-    console.log("changing the list internally", list);
+    // console.log("changing the list internally", list);
     internal_setList(list);
     onListChange?.(list);
   };

@@ -4,7 +4,7 @@ import {
   PageTitle,
 } from "@/components/custom/page-header";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Pencil, Plus } from "lucide-react";
+import { Info, MoreHorizontal, Pencil, Plus } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 import SearchInput from "./_components/search-input";
@@ -111,6 +111,11 @@ export default async function Page({
                         <Link href={`/customers/${customer.id}/edit`}>
                           <DropdownMenuItem>
                             <Pencil className="h-4 w-4 mr-2" /> Edit
+                          </DropdownMenuItem>
+                        </Link>
+                        <Link href={`/customers/${customer.id}`}>
+                          <DropdownMenuItem>
+                            <Info className="h-4 w-4 mr-2" /> Info
                           </DropdownMenuItem>
                         </Link>
                       </DropdownMenuContent>

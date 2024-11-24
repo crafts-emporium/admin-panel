@@ -18,7 +18,10 @@ async function getSalesFromDBWithoutQuery(
   const res = await db
     .select({
       id: purchases.id,
-      customer: customers.name,
+      customer: {
+        id: customers.id,
+        name: customers.name,
+      },
       totalPrice: purchases.price,
       totalDiscountedPrice: purchases.discountedPrice,
       createdAt: purchases.createdAt,
@@ -51,7 +54,7 @@ export async function createSale(
         .insert(purchases)
         .values({
           price: Number(e.totalPrice),
-          discountedPrice: Number(e.totalDiscountedPrice),
+          discountedPrice: Number(e.totalDiscountedPrice || e.totalPrice),
           ...(e.customerId ? { customerId: Number(e.customerId) } : {}),
         })
         .returning();
@@ -74,7 +77,7 @@ export async function createSale(
             .where(eq(variants.id, item.variantId));
         }),
       );
-      console.log(purchase);
+      // console.log(purchase);
 
       //insert purchase items
       await Promise.all(
@@ -141,12 +144,15 @@ export async function getSales(
       };
     }
 
-    console.log({ query });
+    // console.log({ query });
 
     const salesData = await db
       .select({
         id: purchases.id,
-        customer: customers.name,
+        customer: {
+          id: customers.id,
+          name: customers.name,
+        },
         totalPrice: purchases.price,
         totalDiscountedPrice: purchases.discountedPrice,
         createdAt: purchases.createdAt,
@@ -177,7 +183,7 @@ export async function getSales(
 
     return {
       data: salesData,
-      total: total[0]?.total ?? 0,
+      total: Number(total[0]?.total),
     };
   } catch (error) {
     console.log(error);

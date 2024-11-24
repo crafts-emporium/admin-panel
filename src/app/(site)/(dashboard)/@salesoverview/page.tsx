@@ -1,9 +1,44 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TrendingUp } from "lucide-react";
-import { RevenueChart } from "./_components/bar-chart";
+import { ChartData, RevenueChart } from "./_components/bar-chart";
+import { db } from "@/lib/db";
+import { sql } from "drizzle-orm";
+import { format, subDays } from "date-fns";
 
-export default function Page() {
+export default async function Page() {
+  const statDate = subDays(new Date(), 6);
+  const endDate = new Date();
+
+  const startDateFormattedToTimezone = new Date(statDate).toLocaleDateString(
+    "en-US",
+    { timeZone: "Asia/Kolkata" },
+  );
+
+  const endDateFormattedToTimezone = new Date(endDate).toLocaleDateString(
+    "en-US",
+    { timeZone: "Asia/Kolkata" },
+  );
+
+  const res = await db.execute(
+    sql<{ date: string; quantity: string }[]>`
+      WITH date_series AS (
+        SELECT generate_series(
+          ${startDateFormattedToTimezone}::DATE,
+          ${endDateFormattedToTimezone}::DATE,
+          '1 day'::INTERVAL
+        ) as day
+      )
+      SELECT 
+        ds.day as date,
+        COALESCE(SUM(pi.quantity),0) as quantity
+      FROM date_series ds
+      LEFT JOIN purchases p ON EXTRACT(DAY FROM ds.day) = EXTRACT(DAY FROM p.created_at)
+      LEFT JOIN purchase_items pi ON pi.purchase_id = p.id
+      GROUP BY ds.day
+      ORDER BY ds.day;  
+    `,
+  );
+
   return (
     <Card>
       <CardHeader className="flex-row space-y-0 justify-between items-center">
@@ -11,7 +46,7 @@ export default function Page() {
         <TrendingUp />
       </CardHeader>
       <CardContent>
-        <RevenueChart />
+        <RevenueChart data={res.rows as ChartData[]} />
       </CardContent>
     </Card>
   );

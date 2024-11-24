@@ -1,6 +1,9 @@
 export type TDBSale = {
   id: number;
-  customer: string | null;
+  customer: {
+    id: number;
+    name: string;
+  } | null;
   totalPrice: number;
   totalDiscountedPrice: number;
   createdAt: Date;

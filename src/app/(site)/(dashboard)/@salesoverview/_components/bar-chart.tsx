@@ -9,31 +9,21 @@ import {
 } from "@/components/ui/chart";
 import { DateFormat } from "@/functions/date";
 
-const chartData = [
-  { date: "2023-01-01", revenue: 186 },
-  { date: "2023-01-02", revenue: 305 },
-  { date: "2023-01-03", revenue: 237 },
-  { date: "2023-01-04", revenue: 73 },
-  { date: "2023-01-05", revenue: 209 },
-  { date: "2023-01-06", revenue: 214 },
-  { date: "2023-01-07", revenue: 186 },
-];
-
-export type ChartData = { from: string; to?: string; revenue: number };
+export type ChartData = { date: string; revenue: number };
 
 const chartConfig = {
-  revenue: {
-    label: "Revenue",
+  quantity: {
+    label: "Quantity",
     color: "hsl(var(--chart-1))",
   },
 } satisfies ChartConfig;
 
-export function RevenueChart() {
+export function RevenueChart({ data }: { data: ChartData[] }) {
   return (
     <ChartContainer config={chartConfig}>
       <BarChart
         accessibilityLayer
-        data={chartData}
+        data={data}
         margin={{
           top: 20,
         }}
@@ -52,7 +42,7 @@ export function RevenueChart() {
           cursor={false}
           content={<ChartTooltipContent hideLabel />}
         />
-        <Bar dataKey="revenue" fill="var(--color-revenue)" radius={8}>
+        <Bar dataKey="quantity" fill="var(--color-quantity)" radius={8}>
           <LabelList
             position="top"
             offset={12}
