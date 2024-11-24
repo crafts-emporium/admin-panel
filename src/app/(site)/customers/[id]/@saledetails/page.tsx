@@ -107,7 +107,7 @@ export default async function Page({
                           alt={item.title}
                           height={50}
                           width={50}
-                          className="h-10 w-16 rounded object-contain"
+                          className="h-12 w-12 rounded object-cover"
                         />
                         <div>
                           <p className="text-base">{item.title}</p>

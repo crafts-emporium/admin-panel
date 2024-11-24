@@ -80,7 +80,7 @@ export default async function Page() {
                         imageId={topProduct.image || ""}
                         width={50}
                         height={50}
-                        className="rounded-md sm:inline-block hidden h-10 w-16 object-contain"
+                        className="rounded-md sm:inline-block hidden h-12 w-12 object-cover"
                       />
                       <p>{topProduct.title}</p>
                     </div>

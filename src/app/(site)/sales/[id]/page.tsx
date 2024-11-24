@@ -90,12 +90,12 @@ export default async function Page({
                         height={50}
                         width={50}
                         imageId={item.product.image ?? ""}
-                        className="rounded-md h-12 w-12 object-contain"
+                        className="rounded-md h-12 w-12 object-cover"
                       />
                       <div>
                         <h2 className="text-base">{item.product.title}</h2>
                         <p className="text-muted-foreground">
-                          {item.product.size}
+                          {item.product.size} <span>inch</span>
                         </p>
                       </div>
                     </div>

@@ -50,7 +50,7 @@ export default async function Page({
         alt={product[0].title}
         height={100}
         width={100}
-        className="h-24 w-24 object-contain rounded-md shrink-0"
+        className="h-24 w-24 object-cover rounded-md shrink-0"
       />
       <PageHeader>
         <PageTitle className="group flex items-baseline justify-start gap-5">
