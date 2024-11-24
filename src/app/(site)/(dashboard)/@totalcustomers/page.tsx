@@ -3,11 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { customers } from "@/db/schema";
 import { formatNumber } from "@/functions/format-number";
 import { CustomersCountCache } from "@/lib/cache/customers";
-import { db } from "@/lib/db";
+import { initializeDB } from "@/lib/db";
 import { count, eq, sql } from "drizzle-orm";
 import { UsersRound } from "lucide-react";
 
 export default async function Page() {
+  const { client, db } = await initializeDB();
   let customersCount = await CustomersCountCache.get();
   if (!customersCount) {
     customersCount = await getCustomersCountFromDB();
@@ -23,6 +24,7 @@ export default async function Page() {
         sql`EXTRACT(DAY FROM CURRENT_DATE)`,
       ),
     );
+  await client.end();
   return (
     <Card>
       <CardHeader className="flex-row space-y-0 justify-between items-center">

@@ -11,7 +11,7 @@ import {
 import { Amphora } from "lucide-react";
 import Image from "next/image";
 import handcraft from "@/../public/istockphoto.jpg";
-import { db } from "@/lib/db";
+import { initializeDB } from "@/lib/db";
 import { products, purchaseItems, variants } from "@/db/schema";
 import { desc, eq, isNull, sql, sum } from "drizzle-orm";
 import AdvancedImage from "@/components/custom/advanced-image";
@@ -19,6 +19,7 @@ import { formatNumber } from "@/functions/format-number";
 import Link from "next/link";
 
 export default async function Page() {
+  const { db, client } = await initializeDB();
   const topProducts = await db
     .select({
       variantId: variants.id,
@@ -42,6 +43,7 @@ export default async function Page() {
       products.id,
     )
     .limit(5);
+  await client.end();
 
   const totalQuantity = topProducts.reduce(
     (total, current) => total + Number(current.quantity),

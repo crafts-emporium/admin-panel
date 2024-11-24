@@ -2,7 +2,7 @@
 
 import { customers, purchaseItems, purchases, variants } from "@/db/schema";
 import { SalesCache, SalesCountCache } from "@/lib/cache/sales";
-import { db } from "@/lib/db";
+import { initializeDB } from "@/lib/db";
 import { ServerActionResponse } from "@/lib/utils";
 import { saleSchema, TSale } from "@/schema/sale";
 import { TDBSale } from "@/types/sale";
@@ -15,6 +15,7 @@ async function getSalesFromDBWithoutQuery(
   limit: number = defaultLimit,
   offset: number = 0,
 ): Promise<TDBSale[]> {
+  const { db, client } = await initializeDB();
   const res = await db
     .select({
       id: purchases.id,
@@ -31,17 +32,21 @@ async function getSalesFromDBWithoutQuery(
     .orderBy(desc(purchases.id))
     .limit(limit)
     .offset(offset);
+  await client.end();
   return res;
 }
 
 async function getSalesCountFromDB() {
+  const { db, client } = await initializeDB();
   const res = await db.select({ total: count(purchases.id) }).from(purchases);
+  await client.end();
   return res[0]?.total;
 }
 
 export async function createSale(
   e: TSale,
 ): Promise<ServerActionResponse<{ message: string }>> {
+  const { db, client } = await initializeDB();
   try {
     const { success } = saleSchema.safeParse(e);
     if (!success) return { error: "Invalid data" };
@@ -109,6 +114,8 @@ export async function createSale(
     return {
       error: "Something went wrong",
     };
+  } finally {
+    await client.end();
   }
 }
 
@@ -117,6 +124,7 @@ export async function getSales(
   limit: number = defaultLimit,
   offset: number = 0,
 ): Promise<ServerActionResponse<{ data: TDBSale[]; total: number }>> {
+  const { db, client } = await initializeDB();
   try {
     let total = await SalesCountCache.get();
     if (!total) {
@@ -143,8 +151,6 @@ export async function getSales(
         total: Number(total),
       };
     }
-
-    // console.log({ query });
 
     const salesData = await db
       .select({
@@ -190,5 +196,7 @@ export async function getSales(
     return {
       error: "Something went wrong",
     };
+  } finally {
+    await client.end();
   }
 }

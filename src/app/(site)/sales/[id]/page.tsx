@@ -17,7 +17,7 @@ import {
   variants,
 } from "@/db/schema";
 import { formatNumber } from "@/functions/format-number";
-import { db } from "@/lib/db";
+import { initializeDB } from "@/lib/db";
 import { desc, eq, sql, sum } from "drizzle-orm";
 import Link from "next/link";
 
@@ -27,6 +27,7 @@ export default async function Page({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const { db, client } = await initializeDB();
 
   const data = await db
     .select({
@@ -60,6 +61,7 @@ export default async function Page({
       purchases.discountedPrice,
     );
 
+  await client.end();
   const totalPrice = data.reduce((total, item) => {
     return total + Number(item.subTotalPrice);
   }, 0);

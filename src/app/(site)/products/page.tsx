@@ -4,7 +4,7 @@ import {
   PageTitle,
 } from "@/components/custom/page-header";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
+import { MoreHorizontal, Plus, Trash2 } from "lucide-react";
 import { Suspense } from "react";
 import SearchInput from "./_components/search-input";
 import { isActionError } from "@/lib/utils";
@@ -20,19 +20,6 @@ import {
 } from "@/components/ui/table";
 import { getProducts } from "@/actions/products";
 import AdvancedImage from "@/components/custom/advanced-image";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import ProductDropdownMenu from "./_components/dropdown-menu";
 
 export default async function Page({

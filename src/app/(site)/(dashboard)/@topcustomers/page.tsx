@@ -11,12 +11,13 @@ import {
 } from "@/components/ui/table";
 import { customers, purchases } from "@/db/schema";
 import { formatNumber } from "@/functions/format-number";
-import { db } from "@/lib/db";
+import { initializeDB } from "@/lib/db";
 import { count, desc, eq, sum } from "drizzle-orm";
 import { UsersRound } from "lucide-react";
 import Link from "next/link";
 
 export default async function Page() {
+  const { db, client } = await initializeDB();
   const topCustomers = await db
     .select({
       details: {
@@ -32,6 +33,7 @@ export default async function Page() {
     .groupBy(customers.id)
     .orderBy(desc(sum(purchases.discountedPrice)))
     .limit(5);
+  await client.end();
   const totalOrders = topCustomers.reduce(
     (total, current) => total + current.orders,
     0,

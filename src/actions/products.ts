@@ -8,7 +8,7 @@ import {
   variants,
 } from "@/db/schema";
 import { ProductsCache, ProductsCountCache } from "@/lib/cache/products";
-import { db } from "@/lib/db";
+import { initializeDB } from "@/lib/db";
 import { ServerActionResponse } from "@/lib/utils";
 import { productSchema, TProduct } from "@/schema/products";
 import {
@@ -36,7 +36,8 @@ const getProductsFromDBWithoutQuery = async (
   offset: number = 0,
   limit: number = defaultLimit,
 ) => {
-  return await db
+  const { db, client } = await initializeDB();
+  const res = await db
     .select({
       id: products.id,
       title: products.title,
@@ -61,15 +62,20 @@ const getProductsFromDBWithoutQuery = async (
     .where(and(isNull(products.deletedAt), isNull(variants.deletedAt)))
     .limit(limit)
     .offset(offset * limit);
+
+  await client.end();
+  return res;
 };
 
 export const getProductsCountFromDB = async () => {
-  return (
-    await db
-      .select({ count: count(products.id) })
-      .from(products)
-      .where(isNull(products.deletedAt))
-  )[0].count;
+  const { db, client } = await initializeDB();
+  const res = await db
+    .select({ count: count(products.id) })
+    .from(products)
+    .where(isNull(products.deletedAt));
+
+  await client.end();
+  return res[0].count;
 };
 
 export const createProduct = async (
@@ -80,6 +86,7 @@ export const createProduct = async (
     total: number;
   }>
 > => {
+  const { db, client } = await initializeDB();
   try {
     // validate the data
     const { error } = productSchema.safeParse(data);
@@ -136,6 +143,8 @@ export const createProduct = async (
   } catch (error) {
     console.log(error);
     return { error: "Error creating product" };
+  } finally {
+    await client.end();
   }
 };
 
@@ -149,6 +158,7 @@ export const getProducts = async (
     total: number;
   }>
 > => {
+  const { db, client } = await initializeDB();
   try {
     // get cached products count
     let total = await ProductsCountCache.get();
@@ -229,12 +239,15 @@ export const getProducts = async (
     return {
       error: "Error getting products",
     };
+  } finally {
+    await client.end();
   }
 };
 
 export const getProduct = async (
   id: string,
 ): Promise<ServerActionResponse<{ data: TDBProductWithVariants }>> => {
+  const { db, client } = await initializeDB();
   try {
     const product = await db
       .select({
@@ -266,6 +279,8 @@ export const getProduct = async (
     return {
       error: "Error getting product",
     };
+  } finally {
+    await client.end();
   }
 };
 
@@ -276,6 +291,7 @@ export const updateProduct = async ({
   data: Partial<TProduct>;
   id: number;
 }): Promise<ServerActionResponse<{ message: string }>> => {
+  const { db, client } = await initializeDB();
   try {
     await db.transaction(async (trx) => {
       const prevVariants = await trx
@@ -360,12 +376,15 @@ export const updateProduct = async ({
     return {
       error: "Error updating product",
     };
+  } finally {
+    await client.end();
   }
 };
 
 export const deleteProduct = async (
   id: number,
 ): Promise<ServerActionResponse<{ message: string }>> => {
+  const { db, client } = await initializeDB();
   try {
     await db
       .update(products)
@@ -379,6 +398,8 @@ export const deleteProduct = async (
     return {
       error: "Error deleting product",
     };
+  } finally {
+    await client.end();
   }
 };
 
@@ -387,6 +408,7 @@ export const getVariantsWithproductInfo = async (
   offset: number = 0,
   limit: number = 10,
 ): Promise<ServerActionResponse<{ data: TDBVariantWithProduct[] }>> => {
+  const { db, client } = await initializeDB();
   try {
     if (query.trim() === "") return { data: [] };
     const res = await db
@@ -433,12 +455,15 @@ export const getVariantsWithproductInfo = async (
     return {
       error: "Error getting products",
     };
+  } finally {
+    await client.end();
   }
 };
 
 export const getProductVariants = async (
   id: string,
 ): Promise<ServerActionResponse<{ data: ProductSale[] }>> => {
+  const { db, client } = await initializeDB();
   try {
     const res = await db
       .select({
@@ -460,5 +485,7 @@ export const getProductVariants = async (
     return { data: res };
   } catch (error) {
     return { error: "Error getting product sale details" };
+  } finally {
+    await client.end();
   }
 };

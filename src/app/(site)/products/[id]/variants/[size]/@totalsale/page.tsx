@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { purchaseItems, variants } from "@/db/schema";
 import { formatNumber } from "@/functions/format-number";
-import { db } from "@/lib/db";
+import { initializeDB } from "@/lib/db";
 import { and, eq, sum } from "drizzle-orm";
 
 export default async function Page({
@@ -10,6 +10,7 @@ export default async function Page({
   params: Promise<{ id: string; size: string }>;
 }) {
   const { id, size } = await params;
+  const { db, client } = await initializeDB();
   const data = await db
     .select({ count: sum(purchaseItems.quantity) })
     .from(purchaseItems)
@@ -17,6 +18,7 @@ export default async function Page({
     .where(
       and(eq(variants.productId, Number(id)), eq(variants.size, Number(size))),
     );
+  await client.end();
   return (
     <Card>
       <CardHeader>

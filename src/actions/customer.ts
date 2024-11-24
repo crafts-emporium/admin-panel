@@ -8,7 +8,7 @@ import {
   TDBCustomer,
   variants,
 } from "@/db/schema";
-import { db } from "@/lib/db";
+import { initializeDB } from "@/lib/db";
 import { ServerActionResponse } from "@/lib/utils";
 import { customerSchema, TCustomer } from "@/schema/customer";
 import { count, desc, eq, gt, or, sql } from "drizzle-orm";
@@ -22,6 +22,7 @@ const getCustomersFromDBWithoutQuery = async (
   offset: number = 0,
   limit: number = defaultLimit,
 ) => {
+  const { db, client } = await initializeDB();
   return await db
     .select()
     .from(customers)
@@ -31,13 +32,16 @@ const getCustomersFromDBWithoutQuery = async (
 };
 
 export const getCustomersCountFromDB = async () => {
-  return (await db.select({ count: count(customers.id) }).from(customers))[0]
-    ?.count;
+  const { db, client } = await initializeDB();
+  const res = await db.select({ count: count(customers.id) }).from(customers);
+  await client.end();
+  return res[0].count;
 };
 
 export const createCustomer = async (
   data: TCustomer,
 ): Promise<ServerActionResponse<{ data: TDBCustomer; total: number }>> => {
+  const { db, client } = await initializeDB();
   try {
     // validate the data
     const { error } = customerSchema.safeParse(data);
@@ -75,6 +79,8 @@ export const createCustomer = async (
     return {
       error: "Error creating customer",
     };
+  } finally {
+    await client.end();
   }
 };
 
@@ -82,6 +88,7 @@ export const updateCustomer = async (
   data: TCustomer,
   id: number,
 ): Promise<ServerActionResponse<{ data: TDBCustomer; total: number }>> => {
+  const { db, client } = await initializeDB();
   try {
     // validate the data
     const { error } = customerSchema.safeParse(data);
@@ -118,12 +125,15 @@ export const updateCustomer = async (
     return {
       error: "Error updating customer",
     };
+  } finally {
+    await client.end();
   }
 };
 
 export const deleteCustomer = async (
   id: number,
 ): Promise<ServerActionResponse<{ status: boolean; total: number }>> => {
+  const { db, client } = await initializeDB();
   try {
     // delete from db
     await db.delete(customers).where(eq(customers.id, id));
@@ -148,6 +158,8 @@ export const deleteCustomer = async (
     return {
       error: "Error deleting customer",
     };
+  } finally {
+    await client.end();
   }
 };
 
@@ -156,6 +168,7 @@ export const getCustomers = async (
   offset: number = 0,
   limit: number = defaultLimit,
 ): Promise<ServerActionResponse<{ data: TDBCustomer[]; total: number }>> => {
+  const { db, client } = await initializeDB();
   try {
     // get cached customers count
     let total = await CustomersCountCache.get();
@@ -218,12 +231,15 @@ export const getCustomers = async (
     return {
       error: "Error getting customers",
     };
+  } finally {
+    await client.end();
   }
 };
 
 export const getCustomer = async (
   id: string,
 ): Promise<ServerActionResponse<{ data: TDBCustomer }>> => {
+  const { db, client } = await initializeDB();
   try {
     const customer = await db
       .select()
@@ -234,12 +250,15 @@ export const getCustomer = async (
     return {
       error: "Error getting customer",
     };
+  } finally {
+    await client.end();
   }
 };
 
 export const getCustomerSaleDetails = async (
   id: string,
 ): Promise<ServerActionResponse<{ data: CustomerSale[] }>> => {
+  const { db, client } = await initializeDB();
   try {
     const data = await db
       .select({
@@ -272,5 +291,7 @@ export const getCustomerSaleDetails = async (
     return {
       error: "Error getting customer sale details",
     };
+  } finally {
+    await client.end();
   }
 };

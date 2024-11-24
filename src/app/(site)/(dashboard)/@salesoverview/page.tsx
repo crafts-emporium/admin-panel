@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp } from "lucide-react";
 import { ChartData, RevenueChart } from "./_components/bar-chart";
-import { db } from "@/lib/db";
+import { initializeDB } from "@/lib/db";
 import { sql } from "drizzle-orm";
 import { format, subDays } from "date-fns";
 
@@ -19,6 +19,7 @@ export default async function Page() {
     { timeZone: "Asia/Kolkata" },
   );
 
+  const { db, client } = await initializeDB();
   const res = await db.execute(
     sql<{ date: string; quantity: string }[]>`
       WITH date_series AS (
@@ -38,6 +39,8 @@ export default async function Page() {
       ORDER BY ds.day;  
     `,
   );
+
+  await client.end();
 
   return (
     <Card>

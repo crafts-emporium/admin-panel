@@ -2,11 +2,12 @@ import { getProductsCountFromDB } from "@/actions/products";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { products } from "@/db/schema";
 import { ProductsCountCache } from "@/lib/cache/products";
-import { db } from "@/lib/db";
+import { initializeDB } from "@/lib/db";
 import { and, count, eq, isNull, sql } from "drizzle-orm";
 import { Amphora } from "lucide-react";
 
 export default async function Page() {
+  const { client, db } = await initializeDB();
   let totalProducts = await ProductsCountCache.get();
   if (!totalProducts) {
     totalProducts = await getProductsCountFromDB();
@@ -24,6 +25,8 @@ export default async function Page() {
         isNull(products.deletedAt),
       ),
     );
+
+  await client.end();
 
   return (
     <Card>

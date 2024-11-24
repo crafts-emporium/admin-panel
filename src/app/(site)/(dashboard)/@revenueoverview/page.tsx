@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BadgeDollarSign } from "lucide-react";
 import { ChartData, RevenueChart } from "./_components/bar-chart";
 import { subDays } from "date-fns";
-import { db } from "@/lib/db";
+import { initializeDB } from "@/lib/db";
 import { sql } from "drizzle-orm";
 
 export default async function Page() {
@@ -17,7 +17,7 @@ export default async function Page() {
     "en-US",
     { timeZone: "Asia/Kolkata" },
   );
-
+  const { db, client } = await initializeDB();
   const revenueData = await db.execute(
     sql<{ date: string; revenue: number }[]>`
       WITH date_series AS (
@@ -36,7 +36,7 @@ export default async function Page() {
       ORDER BY ds.day;
     `,
   );
-
+  await client.end();
   return (
     <Card>
       <CardHeader className="flex-row space-y-0 justify-between items-center">

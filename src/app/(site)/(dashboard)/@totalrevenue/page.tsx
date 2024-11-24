@@ -1,11 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { purchases } from "@/db/schema";
 import { formatNumber } from "@/functions/format-number";
-import { db } from "@/lib/db";
+import { initializeDB } from "@/lib/db";
 import { eq, sql, sum } from "drizzle-orm";
 import { BadgeDollarSign } from "lucide-react";
 
 export default async function Page() {
+  const { client, db } = await initializeDB();
   const totalRevenueThisMonth = await db
     .select({ purchases: sum(purchases.discountedPrice) })
     .from(purchases)
@@ -25,6 +26,7 @@ export default async function Page() {
       ),
     );
 
+  await client.end();
   return (
     <Card>
       <CardHeader className="flex-row space-y-0 justify-between items-center">

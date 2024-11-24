@@ -1,11 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { purchaseItems, purchases } from "@/db/schema";
 import { formatNumber } from "@/functions/format-number";
-import { db } from "@/lib/db";
+import { initializeDB } from "@/lib/db";
 import { count, eq, sql, sum } from "drizzle-orm";
 import { TrendingUp } from "lucide-react";
 
 export default async function Page() {
+  const { client, db } = await initializeDB();
   const totalSalesThisMonth = await db
     .select({ saleCount: sum(purchaseItems.quantity) })
     .from(purchaseItems)
@@ -27,6 +28,8 @@ export default async function Page() {
         sql`EXTRACT(DAY FROM CURRENT_DATE)`,
       ),
     );
+
+  await client.end();
   return (
     <Card>
       <CardHeader className="flex-row space-y-0 justify-between items-center">

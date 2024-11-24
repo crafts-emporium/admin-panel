@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { purchaseItems, variants } from "@/db/schema";
 import { formatNumber } from "@/functions/format-number";
-import { db } from "@/lib/db";
+import { initializeDB } from "@/lib/db";
 import { eq, sql, sum } from "drizzle-orm";
 
 export default async function Page({
@@ -10,6 +10,7 @@ export default async function Page({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const { db, client } = await initializeDB();
   const data = await db
     .select({
       revenue: sum(
@@ -20,6 +21,7 @@ export default async function Page({
     .innerJoin(variants, eq(purchaseItems.variantId, variants.id))
     .where(eq(variants.productId, Number(id)));
 
+  await client.end();
   return (
     <Card>
       <CardHeader>

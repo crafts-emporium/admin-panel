@@ -6,7 +6,7 @@ import {
 } from "@/components/custom/page-header";
 import { products, variants } from "@/db/schema";
 import { formatNumber } from "@/functions/format-number";
-import { db } from "@/lib/db";
+import { initializeDB } from "@/lib/db";
 import { and, eq, isNull } from "drizzle-orm";
 import { Dot, Pencil } from "lucide-react";
 import Link from "next/link";
@@ -18,6 +18,7 @@ export default async function Page({
   params: Promise<{ id: string; size: string }>;
 }) {
   const { id, size } = await params;
+  const { db, client } = await initializeDB();
   const product = await db
     .select({
       id: products.id,
@@ -37,6 +38,8 @@ export default async function Page({
         isNull(variants.deletedAt),
       ),
     );
+
+  await client.end();
 
   if (variant.length === 0) return notFound();
 
