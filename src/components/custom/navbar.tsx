@@ -24,7 +24,7 @@ export default function Navbar({
           <SidebarSheetTrigger className="md:hidden inline-block" />
           <AppLogo className="md:hidden inline-block" />
         </div>
-        <ModeToggle className="h-full w-10" />
+        <ModeToggle className="h-10 w-10 shrink-0" />
         <UserButton />
       </div>
     </nav>

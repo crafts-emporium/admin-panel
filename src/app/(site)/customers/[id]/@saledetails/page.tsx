@@ -70,22 +70,28 @@ export default async function Page({
               sale.items.map((item, itemIdx) => (
                 <TableRow key={`${saleIdx}-${itemIdx}`}>
                   {itemIdx === 0 && (
-                    <TableCell rowSpan={3} className="px-4">
+                    <TableCell
+                      rowSpan={sale.items.length || 1}
+                      className="px-4"
+                    >
                       {sale.id}
                     </TableCell>
                   )}
                   {itemIdx === 0 && (
-                    <TableCell rowSpan={3}>
+                    <TableCell rowSpan={sale.items.length || 1}>
                       ₹{formatNumber(sale.totalPrice)}
                     </TableCell>
                   )}
                   {itemIdx === 0 && (
-                    <TableCell rowSpan={3}>
+                    <TableCell rowSpan={sale.items.length || 1}>
                       ₹{formatNumber(sale.totalDiscountedPrice)}
                     </TableCell>
                   )}
                   {itemIdx === 0 && (
-                    <TableCell rowSpan={3} className="border-r">
+                    <TableCell
+                      rowSpan={sale.items.length || 1}
+                      className="border-r"
+                    >
                       {format(new Date(sale.createdAt), "PPP")}
                     </TableCell>
                   )}

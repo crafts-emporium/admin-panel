@@ -127,7 +127,7 @@ export default async function Page({
                               imageId={product.image || ""}
                               width={80}
                               height={80}
-                              className="aspect-square rounded-md object-contain h-24 w-24"
+                              className="aspect-square rounded-md object-cover h-24 w-24"
                               alt="Product Image"
                             />
                           </div>

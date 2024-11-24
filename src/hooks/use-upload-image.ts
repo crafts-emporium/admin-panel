@@ -67,7 +67,7 @@ export default function useUploadImage() {
         image.onload = () => {
           canvas.width = maxWidth;
           canvas.height =
-            (image.naturalWidth / image.naturalHeight) * canvas.width;
+            (image.naturalHeight / image.naturalWidth) * canvas.width;
 
           ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
 
