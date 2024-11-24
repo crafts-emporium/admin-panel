@@ -16,11 +16,13 @@ import { products, purchaseItems, variants } from "@/db/schema";
 import { desc, eq, isNull, sql, sum } from "drizzle-orm";
 import AdvancedImage from "@/components/custom/advanced-image";
 import { formatNumber } from "@/functions/format-number";
+import Link from "next/link";
 
 export default async function Page() {
   const topProducts = await db
     .select({
       variantId: variants.id,
+      productId: products.id,
       title: products.title,
       image: products.image,
       size: variants.size,
@@ -32,7 +34,13 @@ export default async function Page() {
     .innerJoin(products, eq(products.id, variants.productId))
     .where(isNull(variants.deletedAt))
     .orderBy(desc(sum(purchaseItems.quantity)))
-    .groupBy(variants.id, products.title, products.image, variants.size)
+    .groupBy(
+      variants.id,
+      products.title,
+      products.image,
+      variants.size,
+      products.id,
+    )
     .limit(5);
 
   const totalQuantity = topProducts.reduce(
@@ -62,17 +70,27 @@ export default async function Page() {
           <TableBody>
             {topProducts.map((topProduct, idx) => (
               <TableRow key={idx}>
-                <TableCell className="flex items-center gap-2">
-                  <AdvancedImage
-                    alt="product-image"
-                    imageId={topProduct.image || ""}
-                    width={50}
-                    height={50}
-                    className="rounded-md sm:inline-block hidden h-10 w-16 object-contain"
-                  />
-                  <p>{topProduct.title}</p>
+                <TableCell>
+                  <Link href={`/products/${topProduct.productId}`}>
+                    <div className="flex items-center gap-2">
+                      <AdvancedImage
+                        alt="product-image"
+                        imageId={topProduct.image || ""}
+                        width={50}
+                        height={50}
+                        className="rounded-md sm:inline-block hidden h-10 w-16 object-contain"
+                      />
+                      <p>{topProduct.title}</p>
+                    </div>
+                  </Link>
                 </TableCell>
-                <TableCell>{topProduct.size} inch</TableCell>
+                <TableCell>
+                  <Link
+                    href={`/products/${topProduct.productId}/variants/${topProduct.size}`}
+                  >
+                    {topProduct.size} inch
+                  </Link>
+                </TableCell>
                 <TableCell>
                   {formatNumber(Number(topProduct.quantity))}
                 </TableCell>

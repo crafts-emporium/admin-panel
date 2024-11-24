@@ -14,6 +14,7 @@ import { formatNumber } from "@/functions/format-number";
 import { db } from "@/lib/db";
 import { count, desc, eq, sum } from "drizzle-orm";
 import { UsersRound } from "lucide-react";
+import Link from "next/link";
 
 export default async function Page() {
   const topCustomers = await db
@@ -57,11 +58,15 @@ export default async function Page() {
           <TableBody>
             {topCustomers.map((customer, index) => (
               <TableRow key={index}>
-                <TableCell className="space-y-0.5 py-1.5">
-                  <p className="text-base">{customer.details.name}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {customer.details.phone}
-                  </p>
+                <TableCell>
+                  <Link href={`/customers/${customer.details.id}`}>
+                    <div className="space-y-0.5 py-1.5">
+                      <p className="text-base">{customer.details.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {customer.details.phone}
+                      </p>
+                    </div>
+                  </Link>
                 </TableCell>
                 <TableCell>{customer.orders}</TableCell>
                 <TableCell>₹{formatNumber(Number(customer.revenue))}</TableCell>
