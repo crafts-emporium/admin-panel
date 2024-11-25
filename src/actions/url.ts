@@ -1,5 +1,3 @@
-"use server";
-
 import { ServerActionResponse } from "@/lib/utils";
 import {
   GetObjectCommand,
@@ -9,11 +7,11 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const client = new S3Client({
-  endpoint: process.env.CLOUDFLARE_ENDPOINT,
+  endpoint: process.env.NEXT_PUBLIC_CLOUDFLARE_ENDPOINT,
   region: "auto",
   credentials: {
-    accessKeyId: process.env.CLOUDFLARE_ACCESS_KEY_ID,
-    secretAccessKey: process.env.CLOUDFLARE_ACCESS_KEY,
+    accessKeyId: process.env.NEXT_PUBLIC_CLOUDFLARE_ACCESS_KEY_ID,
+    secretAccessKey: process.env.NEXT_PUBLIC_CLOUDFLARE_ACCESS_KEY,
   },
 });
 
@@ -23,7 +21,7 @@ export const getPreSignedMediaUrl = async (
 ): Promise<ServerActionResponse<{ url: string }>> => {
   try {
     const command = new PutObjectCommand({
-      Bucket: process.env.CLOUDFLARE_BUCKET_NAME,
+      Bucket: process.env.NEXT_PUBLIC_CLOUDFLARE_BUCKET_NAME,
       Key: key,
       ContentType: contentType,
       CacheControl: "max-age=31536000",
@@ -44,7 +42,7 @@ export const getSignedMediaUrl = async (
 ): Promise<ServerActionResponse<{ url: string }>> => {
   try {
     const command = new GetObjectCommand({
-      Bucket: process.env.CLOUDFLARE_BUCKET_NAME,
+      Bucket: process.env.NEXT_PUBLIC_CLOUDFLARE_BUCKET_NAME,
       Key: key,
     });
 
