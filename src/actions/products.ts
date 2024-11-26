@@ -326,6 +326,8 @@ export const updateProduct = async ({
         );
       });
 
+      console.log({ updatedVariants, addedVariants, removedVariants })
+
       await trx
         .update(products)
         .set({
@@ -352,7 +354,7 @@ export const updateProduct = async ({
             size: Number(updatedVariant.size),
             quantity: Number(updatedVariant.quantity),
             price: Number(updatedVariant.price),
-          });
+          }).where(and(eq(variants.size, Number(updatedVariant.size)), eq(variants.productId, Number(id))));
         }),
       );
 
@@ -363,7 +365,7 @@ export const updateProduct = async ({
             .set({
               deletedAt: sql`CURRENT_DATE`,
             })
-            .where(eq(variants.id, removedVariant.id));
+            .where(and(eq(variants.size, removedVariant.size), eq(variants.productId, Number(id))));
         }),
       );
     });
