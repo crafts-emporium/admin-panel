@@ -347,6 +347,7 @@ export const updateProduct = async ({
           });
         }),
       );
+      
 
       await Promise.all(
         updatedVariants.map(async (updatedVariant) => {
