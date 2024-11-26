@@ -1,6 +1,12 @@
 "use server";
 
-import { customers, purchaseItems, purchases, variants } from "@/db/schema";
+import {
+  customers,
+  products,
+  purchaseItems,
+  purchases,
+  variants,
+} from "@/db/schema";
 import { SalesCache, SalesCountCache } from "@/lib/cache/sales";
 import { initializeDB } from "@/lib/db";
 import { ServerActionResponse } from "@/lib/utils";
@@ -51,19 +57,7 @@ export async function createSale(
     const { success } = saleSchema.safeParse(e);
     if (!success) return { error: "Invalid data" };
 
-    console.dir(e);
-
     await db.transaction(async (trx) => {
-      //insert purchase data
-      const purchase = await trx
-        .insert(purchases)
-        .values({
-          price: Number(e.totalPrice),
-          discountedPrice: Number(e.totalDiscountedPrice || e.totalPrice),
-          ...(e.customerId ? { customerId: Number(e.customerId) } : {}),
-        })
-        .returning();
-
       //reduce the quantity of the variants after checking if there is enough in stock
       await Promise.all(
         e.saleItems.map(async (item) => {
@@ -83,6 +77,16 @@ export async function createSale(
         }),
       );
       // console.log(purchase);
+
+      //insert purchase data
+      const purchase = await trx
+        .insert(purchases)
+        .values({
+          price: Number(e.totalPrice),
+          discountedPrice: Number(e.totalDiscountedPrice || e.totalPrice),
+          ...(e.customerId ? { customerId: Number(e.customerId) } : {}),
+        })
+        .returning();
 
       //insert purchase items
       await Promise.all(

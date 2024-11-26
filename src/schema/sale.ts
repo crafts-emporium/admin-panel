@@ -1,9 +1,8 @@
 import * as z from "zod";
 
 const saleItem = z.object({
-  variantId: z
-    .string()
-    .refine((v) => v.length === 21, { message: "Invalid variant id" }),
+  productId: z.string().min(1, { message: "Product id is required" }),
+  variantId: z.string().min(21, { message: "Size is required" }),
   quantity: z.string().min(1, { message: "Quantity is required" }),
   price: z.string().min(1, { message: "Total price is required" }),
 });

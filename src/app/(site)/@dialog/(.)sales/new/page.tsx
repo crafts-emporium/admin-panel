@@ -46,7 +46,7 @@ export default function Page() {
 
   return (
     <Dialog defaultOpen onOpenChange={(e) => !e && router.back()}>
-      <DialogContent>
+      <DialogContent className="max-h-[90dvh] overflow-y-scroll scroller-none">
         <DialogHeader>
           <DialogTitle>Add New Sale</DialogTitle>
         </DialogHeader>

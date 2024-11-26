@@ -1,20 +1,26 @@
 "use client";
 
 import { TDBCustomer } from "@/db/schema";
-import { TDBVariantWithProduct } from "@/types/product";
+import {
+  TDBProductWithVariantsForSale,
+  TDBVariantsForSale,
+} from "@/types/product";
 import { produce } from "immer";
 import React from "react";
 
 type SaleFormMetadataProviderStateProps = {
   customers: TDBCustomer[] | null;
-  variants: TDBVariantWithProduct[][] | null;
+  products: TDBProductWithVariantsForSale[][] | null;
 };
 
 export type SaleFormMetadataProviderActionProps = {
   setCustomers: (customers: TDBCustomer[]) => void;
-  updateVariants: (variants: TDBVariantWithProduct[], index: number) => void;
-  setVariants: (variants: TDBVariantWithProduct[][]) => void;
-  deleteVariants: (index: number) => void;
+  setProducts: (product: TDBProductWithVariantsForSale[][]) => void;
+  deleteProducts: (index: number) => void;
+  updateProducts: (
+    index: number,
+    products: TDBProductWithVariantsForSale[],
+  ) => void;
 };
 
 export const saleFormContext = React.createContext<
@@ -25,34 +31,37 @@ export const saleFormContext = React.createContext<
 export default function SaleFormMetadataProvider({
   children,
   customers,
-  variants,
+  products,
 }: {
   children: React.ReactNode;
 } & Partial<SaleFormMetadataProviderStateProps>) {
   const [internal_customers, internal_setCustomers] = React.useState<
     TDBCustomer[] | null
   >(customers ?? []);
-  const [internal_variants, internal_setVariants] = React.useState<
-    TDBVariantWithProduct[][] | null
-  >(variants ?? []);
+  const [internal_products, internal_setProducts] = React.useState<
+    TDBProductWithVariantsForSale[][] | null
+  >(products ?? []);
 
   const setCustomers = (customers: TDBCustomer[]) =>
     internal_setCustomers(customers);
 
-  const updateVariants = (variants: TDBVariantWithProduct[], index: number) =>
-    internal_setVariants(
-      produce((state: TDBVariantWithProduct[][] | null) => {
+  const updateProducts = (
+    index: number,
+    products: TDBProductWithVariantsForSale[],
+  ) =>
+    internal_setProducts(
+      produce((state: TDBProductWithVariantsForSale[][] | null) => {
         if (!state) return;
 
-        state[index] = variants;
+        state[index] = products;
       }),
     );
-  const setVariants = (variants: TDBVariantWithProduct[][]) =>
-    internal_setVariants(variants);
+  const setProducts = (products: TDBProductWithVariantsForSale[][]) =>
+    internal_setProducts(products);
 
-  const deleteVariants = (index: number) => {
-    internal_setVariants(
-      produce((state: TDBVariantWithProduct[][] | null) => {
+  const deleteProducts = (index: number) => {
+    internal_setProducts(
+      produce((state: TDBProductWithVariantsForSale[][] | null) => {
         if (!state) return;
         state.splice(index, 1);
       }),
@@ -63,11 +72,11 @@ export default function SaleFormMetadataProvider({
     <saleFormContext.Provider
       value={{
         customers: internal_customers,
-        variants: internal_variants,
+        products: internal_products,
         setCustomers,
-        updateVariants,
-        setVariants,
-        deleteVariants,
+        setProducts: setProducts,
+        deleteProducts,
+        updateProducts,
       }}
     >
       {children}

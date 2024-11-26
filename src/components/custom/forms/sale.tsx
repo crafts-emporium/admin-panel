@@ -1,7 +1,7 @@
 "use client";
 
 import { getCustomers } from "@/actions/customer";
-import { getVariantsWithproductInfo } from "@/actions/products";
+import { getProductWithVariants } from "@/actions/products";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -25,7 +25,7 @@ import {
 import { TDBCustomer } from "@/db/schema";
 import { cn, isActionError } from "@/lib/utils";
 import { TSale } from "@/schema/sale";
-import { TDBVariantWithProduct } from "@/types/product";
+import { TDBProductWithVariantsForSale } from "@/types/product";
 import { PopoverClose } from "@radix-ui/react-popover";
 import {
   ChevronDown,
@@ -42,6 +42,13 @@ import useSaleFormMetadata from "@/hooks/use-sale-form-metadata";
 import { Input } from "@/components/ui/input";
 import { useEffect } from "react";
 import InputWithPrefixNode from "@/components/ui/input-with-prefixnode";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function SaleForm({
   form,
@@ -50,8 +57,14 @@ export default function SaleForm({
   form: ReturnType<typeof useForm<TSale>>;
   onSubmit: (e: TSale) => void;
 }) {
-  const { customers, variants, setCustomers, updateVariants, deleteVariants } =
-    useSaleFormMetadata();
+  const {
+    customers,
+    products,
+    setCustomers,
+    setProducts,
+    updateProducts,
+    deleteProducts,
+  } = useSaleFormMetadata();
   const items = useFieldArray({
     control: form.control,
     name: "saleItems",
@@ -60,7 +73,7 @@ export default function SaleForm({
     (item) => item.id.toString() === form.watch("customerId"),
   );
   const productDetails = (index: number) => (id: string) =>
-    variants?.[index]?.find((item) => item.id.toString() === id);
+    products?.[index]?.find((item) => item.id.toString() === id);
 
   const handleGetCustomersList = async (query: string) => {
     const res = await getCustomers(query, 0, 4);
@@ -71,7 +84,7 @@ export default function SaleForm({
   };
 
   const handleGetProductList = async (query: string) => {
-    const res = await getVariantsWithproductInfo(query, 0, 4);
+    const res = await getProductWithVariants(query, 0, 4);
     if (isActionError(res)) {
       return [];
     }
@@ -83,11 +96,12 @@ export default function SaleForm({
       variantId: "",
       price: "",
       quantity: "",
+      productId: "",
     });
   };
 
   const handleRemoveItem = (index: number) => () => {
-    deleteVariants(index);
+    deleteProducts(index);
     items.remove(index);
   };
 
@@ -111,6 +125,8 @@ export default function SaleForm({
     //     : null
     //   : form.setValue("totalDiscountedPrice", totalPrice?.toString());
   }, [totalPrice]);
+
+  // console.log(form.watch());
 
   return (
     <Form {...form}>
@@ -211,9 +227,9 @@ export default function SaleForm({
                     <FormControl>
                       <SearchCombo
                         getListItems={handleGetProductList}
-                        list={variants?.[index] || []}
+                        list={products?.[index] || []}
                         onListChange={(e) => {
-                          updateVariants(e, index);
+                          updateProducts(index, e);
                         }}
                       >
                         <SearchComboTrigger asChild>
@@ -222,18 +238,8 @@ export default function SaleForm({
                             className="w-full flex justify-between"
                           >
                             <div className="flex items-center gap-2">
-                              {productDetails(index)(field.value.variantId)
+                              {productDetails(index)(field.value.productId)
                                 ?.title || "Select Product"}
-                              <p className="text-xs text-muted-foreground">
-                                {form.watch(`saleItems.${index}.variantId`) &&
-                                  `${
-                                    productDetails(index)(field.value.variantId)
-                                      ?.size
-                                  } inches  ₹${
-                                    productDetails(index)(field.value.variantId)
-                                      ?.price
-                                  }`}
-                              </p>
                             </div>
                             <ChevronDown size={16} />
                           </Button>
@@ -257,57 +263,90 @@ export default function SaleForm({
                           </SearchComboEmpty>
                           <SearchComboList>
                             {(state) =>
-                              (state.list as TDBVariantWithProduct[])?.map(
-                                (product) => (
-                                  <SearchComboListItem
-                                    key={product.id}
-                                    onClick={() =>
-                                      form.setValue(`saleItems.${index}`, {
-                                        ...form.getValues(`saleItems.${index}`),
-                                        variantId: product.id,
-                                        price: product.price?.toString(),
-                                      })
-                                    }
-                                    className="flex flex-row justify-start items-center gap-3"
-                                  >
-                                    <AdvancedImage
-                                      imageId={product.image ?? ""}
-                                      alt="product-image"
-                                      height={50}
-                                      width={50}
-                                      className="rounded-md shrink-0 h-12 w-12 object-cover"
-                                    />
-                                    <div className="self-stretch spce-y-1">
-                                      <SearchComboListItemTitle>
-                                        {product.title}
-                                      </SearchComboListItemTitle>
-                                      <div className="flex justify-start items-center gap-2 [&>*]:whitespace-nowrap">
-                                        <SearchComboListItemDescription>
-                                          {product.size} <span>inches</span>
-                                        </SearchComboListItemDescription>
-                                        <Dot
-                                          size={10}
-                                          className="scale-[2] shrink-0"
-                                        />
-                                        <SearchComboListItemDescription>
-                                          {product.quantity} <span>pcs</span>
-                                        </SearchComboListItemDescription>
-                                        <Dot
-                                          size={10}
-                                          className="scale-[2] shrink-0"
-                                        />
-                                        <SearchComboListItemDescription>
-                                          ₹{product.price}
-                                        </SearchComboListItemDescription>
-                                      </div>
-                                    </div>
-                                  </SearchComboListItem>
-                                ),
-                              )
+                              (
+                                state.list as TDBProductWithVariantsForSale[]
+                              )?.map((product) => (
+                                <SearchComboListItem
+                                  key={product.id}
+                                  onClick={() =>
+                                    form.setValue(`saleItems.${index}`, {
+                                      ...form.getValues(`saleItems.${index}`),
+                                      productId: product.id.toString(),
+                                      variantId: "",
+                                    })
+                                  }
+                                  className="flex flex-row justify-start items-center gap-3"
+                                >
+                                  <AdvancedImage
+                                    imageId={product.image ?? ""}
+                                    alt="product-image"
+                                    height={50}
+                                    width={50}
+                                    className="rounded-md shrink-0 h-12 w-12 object-cover"
+                                  />
+                                  <div className="self-stretch spce-y-1">
+                                    <SearchComboListItemTitle>
+                                      {product.title}
+                                    </SearchComboListItemTitle>
+                                  </div>
+                                </SearchComboListItem>
+                              ))
                             }
                           </SearchComboList>
                         </SearchComboContent>
                       </SearchCombo>
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name={`saleItems.${index}`}
+                render={({ field }) => (
+                  <FormItem
+                    className={cn(
+                      "col-span-2 hidden",
+                      field.value.productId && "block",
+                    )}
+                  >
+                    <FormControl>
+                      <Select
+                        value={field.value.variantId}
+                        onValueChange={(e) =>
+                          form.setValue(`saleItems.${index}`, {
+                            ...form.getValues(`saleItems.${index}`),
+                            variantId: e,
+                            price:
+                              productDetails(index)(field.value.productId)
+                                ?.variants?.find((v) => v.id.toString() === e)
+                                ?.price?.toString() ?? "",
+                          })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select Size" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {productDetails(index)(
+                            field.value.productId,
+                          )?.variants?.map((variant) => (
+                            <SelectItem key={variant.id} value={variant.id}>
+                              <p className="flex justify-start items-center gap-0.5">
+                                {variant.size} inch
+                                <Dot /> ₹{" "}
+                                <span className="font-medium">
+                                  {variant.price}
+                                </span>
+                                <Dot />
+                                <span className="text-muted-foreground">
+                                  {variant.quantity} left
+                                </span>
+                              </p>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </FormControl>
                   </FormItem>
                 )}

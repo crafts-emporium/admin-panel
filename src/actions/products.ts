@@ -27,7 +27,8 @@ import { revalidatePath } from "next/cache";
 import {
   ProductSale,
   TDBProductWithVariants,
-  TDBVariantWithProduct,
+  TDBProductWithVariantsForSale,
+  TDBVariantsForSale,
 } from "@/types/product";
 
 const defaultLimit = 10;
@@ -326,7 +327,7 @@ export const updateProduct = async ({
         );
       });
 
-      console.log({ updatedVariants, addedVariants, removedVariants })
+      // console.log({ updatedVariants, addedVariants, removedVariants });
 
       await trx
         .update(products)
@@ -347,15 +348,22 @@ export const updateProduct = async ({
           });
         }),
       );
-      
 
       await Promise.all(
         updatedVariants.map(async (updatedVariant) => {
-          await trx.update(variants).set({
-            size: Number(updatedVariant.size),
-            quantity: Number(updatedVariant.quantity),
-            price: Number(updatedVariant.price),
-          }).where(and(eq(variants.size, Number(updatedVariant.size)), eq(variants.productId, Number(id))));
+          await trx
+            .update(variants)
+            .set({
+              size: Number(updatedVariant.size),
+              quantity: Number(updatedVariant.quantity),
+              price: Number(updatedVariant.price),
+            })
+            .where(
+              and(
+                eq(variants.size, Number(updatedVariant.size)),
+                eq(variants.productId, Number(id)),
+              ),
+            );
         }),
       );
 
@@ -366,7 +374,12 @@ export const updateProduct = async ({
             .set({
               deletedAt: sql`CURRENT_DATE`,
             })
-            .where(and(eq(variants.size, removedVariant.size), eq(variants.productId, Number(id))));
+            .where(
+              and(
+                eq(variants.size, removedVariant.size),
+                eq(variants.productId, Number(id)),
+              ),
+            );
         }),
       );
     });
@@ -406,49 +419,45 @@ export const deleteProduct = async (
   }
 };
 
-export const getVariantsWithproductInfo = async (
+export const getProductWithVariants = async (
   query: string,
   offset: number = 0,
   limit: number = 10,
-): Promise<ServerActionResponse<{ data: TDBVariantWithProduct[] }>> => {
+): Promise<ServerActionResponse<{ data: TDBProductWithVariantsForSale[] }>> => {
   const { db, client } = await initializeDB();
   try {
     if (query.trim() === "") return { data: [] };
     const res = await db
       .select({
-        id: variants.id,
-        productId: products.id,
+        id: products.id,
         title: products.title,
-        size: variants.size,
-        price: variants.price,
-        quantity: variants.quantity,
         image: products.image,
+        variants: sql<TDBVariantsForSale[]>`
+          json_agg(
+            json_build_object(
+              'id', ${variants.id}, 
+              'price', ${variants.price}, 
+              'quantity', ${variants.quantity}, 
+              'size', ${variants.size}
+            )
+          )  
+        `,
       })
       .from(products)
       .innerJoin(variants, eq(variants.productId, products.id))
       .where(
         and(
-          or(
-            gt(sql`SIMILARITY(title, ${query})`, 0.3),
-            gt(sql`SIMILARITY(size::TEXT, ${query})`, 0.3),
-          ),
+          gt(sql`SIMILARITY(title, ${query})`, 0.2),
           isNull(products.deletedAt),
           isNull(variants.deletedAt),
         ),
       )
-      .groupBy(products.id, variants.id)
-      .orderBy(
-        desc(sql`
-          GREATEST(
-            SIMILARITY(title, ${query}),
-            SIMILARITY(size::TEXT, ${query})
-          )
-        `),
-      )
+      .groupBy(products.id)
+      .orderBy(desc(sql`SIMILARITY(title, ${query})`))
       .limit(limit)
       .offset(offset);
 
-    // console.log(res);
+    console.dir(res);
 
     return {
       data: res,
