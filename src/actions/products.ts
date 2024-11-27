@@ -357,6 +357,7 @@ export const updateProduct = async ({
               size: Number(updatedVariant.size),
               quantity: Number(updatedVariant.quantity),
               price: Number(updatedVariant.price),
+              deletedAt: sql`NULL`,
             })
             .where(
               and(
@@ -457,7 +458,7 @@ export const getProductWithVariants = async (
       .limit(limit)
       .offset(offset);
 
-    console.dir(res);
+    // console.dir(res);
 
     return {
       data: res,
