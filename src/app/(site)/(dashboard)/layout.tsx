@@ -8,6 +8,7 @@ export default function Layout({
   salesoverview,
   topcustomers,
   topproducts,
+  inventoryworth,
 }: {
   children: React.ReactNode;
   totalproducts: React.ReactNode;
@@ -18,6 +19,7 @@ export default function Layout({
   salesoverview: React.ReactNode;
   topproducts: React.ReactNode;
   topcustomers: React.ReactNode;
+  inventoryworth: React.ReactNode;
 }) {
   return (
     <div className="@container space-y-4">
@@ -27,6 +29,7 @@ export default function Layout({
         {totalrevenue}
         {totalsales}
         {totalcustomers}
+        {inventoryworth}
       </section>
       <section className="grid @3xl:grid-cols-2 gap-4">
         {revenueoverview}

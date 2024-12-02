@@ -13,7 +13,7 @@ export default async function Page({
   const { db, client } = await initializeDB();
   const data = await db
     .select({
-      worth: sum(sql<number>`${variants.quantity} * ${variants.price}`),
+      worth: sum(sql<number>`${variants.quantity} * ${variants.costPrice}`),
     })
     .from(variants)
     .where(eq(variants.productId, Number(id)));

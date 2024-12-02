@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { isActionError } from "@/lib/utils";
-import { productSchema, TProduct } from "@/schema/products";
+import { getVariantsDefault, productSchema, TProduct } from "@/schema/products";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { nanoid } from "nanoid";
 import { useRouter } from "next/navigation";
@@ -24,7 +24,7 @@ export default function Page() {
     defaultValues: {
       title: "",
       description: "",
-      variants: [{ variantId: nanoid(), quantity: "", price: "", size: "" }],
+      variants: [getVariantsDefault()],
     },
   });
 

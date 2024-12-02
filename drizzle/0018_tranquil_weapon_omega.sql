@@ -1,0 +1,1 @@
+ALTER TABLE "purchases" ALTER COLUMN "discounted_price" SET DEFAULT 0;

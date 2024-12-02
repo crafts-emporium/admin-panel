@@ -92,6 +92,83 @@
       "when": 1732420868468,
       "tag": "0012_acoustic_polaris",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1733060598445,
+      "tag": "0013_tan_tinkerer",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1733060768892,
+      "tag": "0014_cool_morlun",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1733062181319,
+      "tag": "0015_real_nebula",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1733141364221,
+      "tag": "0016_tiresome_romulus",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1733141488576,
+      "tag": "0017_dizzy_juggernaut",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1733150619970,
+      "tag": "0018_tranquil_weapon_omega",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1733150769100,
+      "tag": "0019_white_violations",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1733150905061,
+      "tag": "0020_classy_warhawk",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1733151159909,
+      "tag": "0021_striped_cloak",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1733151456870,
+      "tag": "0022_open_impossible_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1733152016716,
+      "tag": "0023_jazzy_grim_reaper",
+      "breakpoints": true
     }
   ]
 }

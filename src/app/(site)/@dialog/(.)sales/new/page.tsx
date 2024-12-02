@@ -11,7 +11,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { isActionError } from "@/lib/utils";
 import SaleFormMetadataProvider from "@/providers/sale-form-metadata-provider";
-import { saleSchema, TSale } from "@/schema/sale";
+import { getSaleItemDefault, saleSchema, TSale } from "@/schema/sale";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -25,7 +25,7 @@ export default function Page() {
       customerId: "",
       totalPrice: "",
       totalDiscountedPrice: "",
-      saleItems: [{ variantId: "", quantity: "", price: "" }],
+      saleItems: [getSaleItemDefault()],
     },
   });
   const onSubmit = async (e: TSale) => {

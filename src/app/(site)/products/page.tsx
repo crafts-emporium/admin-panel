@@ -142,7 +142,25 @@ export default async function Page({
                         </div>
                       </TableCell>
                     )}
-                    <TableCell className="p-4">{variant.size}</TableCell>
+                    <TableCell className="p-4">
+                      {variant.feet ? (
+                        <span>
+                          {variant.feet}
+                          <span className="ml-0.5">ft</span>
+                        </span>
+                      ) : (
+                        ""
+                      )}
+                      &nbsp;
+                      {variant.inch ? (
+                        <span>
+                          {variant.inch}
+                          <span className="ml-0.5">in</span>
+                        </span>
+                      ) : (
+                        ""
+                      )}
+                    </TableCell>
                     <TableCell>{variant.quantity}</TableCell>
                     <TableCell>₹{variant.price}</TableCell>
                     {j == 0 && (

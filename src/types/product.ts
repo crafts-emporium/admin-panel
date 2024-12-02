@@ -6,7 +6,8 @@ export type TDBProductWithVariants = TDBProduct & {
 
 export type ProductSale = {
   id: string;
-  size: number;
+  inch: number;
+  feet: number | null;
   price: number;
   stock: number;
   sold: string | null;
@@ -15,8 +16,11 @@ export type ProductSale = {
 
 export type TDBVariantsForSale = {
   id: string;
-  size: number;
+  inch: number;
+  feet: number;
   price: number;
+  costPrice: number;
+  msp: number | null;
   quantity: number;
 };
 

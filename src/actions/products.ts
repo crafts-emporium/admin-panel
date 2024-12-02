@@ -51,7 +51,8 @@ const getProductsFromDBWithoutQuery = async (
           'id', ${variants.id}, 
           'price', ${variants.price}, 
           'quantity', ${variants.quantity}, 
-          'size', ${variants.size}, 
+          'inch', ${variants.inch},
+          'feet', ${variants.feet}, 
           'deletedAt', ${variants.deletedAt}
         )
       )`,
@@ -113,7 +114,8 @@ export const createProduct = async (
                 productId: product[0].id,
                 price: Number(variant.price),
                 quantity: Number(variant.quantity),
-                size: Number(variant.size),
+                inch: Number(variant.inch),
+                feet: Number(variant.feet),
               })
               .returning()
           )[0];
@@ -210,7 +212,8 @@ export const getProducts = async (
               'id', ${variants.id}, 
               'price', ${variants.price}, 
               'quantity', ${variants.quantity}, 
-              'size', ${variants.size}, 
+              'inch', ${variants.inch}, 
+              'feet', ${variants.feet},
               'deletedAt', ${variants.deletedAt}
             )
           )`,
@@ -263,7 +266,10 @@ export const getProduct = async (
               'id', ${variants.id}, 
               'price', ${variants.price}, 
               'quantity', ${variants.quantity}, 
-              'size', ${variants.size}, 
+              'inch', ${variants.inch},
+              'feet', ${variants.feet}, 
+              'msp', ${variants.msp},
+              'costPrice', ${variants.costPrice},
               'deletedAt', ${variants.deletedAt}
             )
           )`,
@@ -306,28 +312,40 @@ export const updateProduct = async ({
         (prevVariant) =>
           !currentVariants.some(
             (currentVariant) =>
-              Number(currentVariant.size) === prevVariant.size,
+              Number(currentVariant.inch) === Number(prevVariant.inch) &&
+              Number(currentVariant.feet) === Number(prevVariant.feet),
           ),
       );
       const addedVariants = currentVariants.filter(
         (currentVariant) =>
           !prevVariants.some(
-            (prevVariant) => prevVariant.size === Number(currentVariant.size),
+            (prevVariant) =>
+              Number(currentVariant.inch) === Number(prevVariant.inch) &&
+              Number(currentVariant.feet) === Number(prevVariant.feet),
           ),
       );
 
       const updatedVariants = currentVariants.filter((currentVariant) => {
         const prevVariant = prevVariants.find(
-          (prevVariant) => prevVariant.size === Number(currentVariant.size),
+          (prevVariant) =>
+            Number(currentVariant.inch) === Number(prevVariant.inch) &&
+            Number(currentVariant.feet) === Number(prevVariant.feet),
         );
         return (
           prevVariant &&
           (prevVariant.price !== Number(currentVariant.price) ||
-            prevVariant.quantity !== Number(currentVariant.quantity))
+            prevVariant.quantity !== Number(currentVariant.quantity) ||
+            prevVariant.msp !== Number(currentVariant.msp) ||
+            prevVariant.costPrice !== Number(currentVariant.costPrice) ||
+            prevVariant.description !== currentVariant.description)
         );
       });
 
-      // console.log({ updatedVariants, addedVariants, removedVariants });
+      console.log({
+        updatedVariants,
+        addedVariants,
+        removedVariants,
+      });
 
       await trx
         .update(products)
@@ -341,9 +359,13 @@ export const updateProduct = async ({
       await Promise.all(
         addedVariants.map(async (addedVariant) => {
           await trx.insert(variants).values({
-            size: Number(addedVariant.size),
+            inch: Number(addedVariant.inch || ""),
+            feet: Number(addedVariant.feet || ""),
             quantity: Number(addedVariant.quantity),
             price: Number(addedVariant.price),
+            msp: Number(addedVariant.msp),
+            costPrice: Number(addedVariant.costPrice),
+            description: addedVariant.description,
             productId: id,
           });
         }),
@@ -354,14 +376,25 @@ export const updateProduct = async ({
           await trx
             .update(variants)
             .set({
-              size: Number(updatedVariant.size),
+              inch: Number(updatedVariant.inch || ""),
+              feet: Number(updatedVariant.feet || ""),
               quantity: Number(updatedVariant.quantity),
               price: Number(updatedVariant.price),
+              msp: Number(updatedVariant.msp),
+              costPrice: Number(updatedVariant.costPrice),
+              description: updatedVariant.description,
               deletedAt: sql`NULL`,
             })
             .where(
               and(
-                eq(variants.size, Number(updatedVariant.size)),
+                or(
+                  eq(variants.inch, Number(updatedVariant.inch)),
+                  isNull(variants.inch),
+                ),
+                or(
+                  eq(variants.feet, Number(updatedVariant.feet)),
+                  isNull(variants.feet),
+                ),
                 eq(variants.productId, Number(id)),
               ),
             );
@@ -377,7 +410,14 @@ export const updateProduct = async ({
             })
             .where(
               and(
-                eq(variants.size, removedVariant.size),
+                or(
+                  eq(variants.inch, Number(removedVariant.inch)),
+                  isNull(variants.inch),
+                ),
+                or(
+                  eq(variants.feet, Number(removedVariant.feet)),
+                  isNull(variants.feet),
+                ),
                 eq(variants.productId, Number(id)),
               ),
             );
@@ -390,6 +430,7 @@ export const updateProduct = async ({
 
     return { message: "Product updated successfully" };
   } catch (error) {
+    console.log(error);
     return {
       error: "Error updating product",
     };
@@ -439,7 +480,10 @@ export const getProductWithVariants = async (
               'id', ${variants.id}, 
               'price', ${variants.price}, 
               'quantity', ${variants.quantity}, 
-              'size', ${variants.size}
+              'inch', ${variants.inch},
+              'feet', ${variants.feet},
+              'costPrice', ${variants.costPrice},
+              'msp', ${variants.msp}
             )
           )  
         `,
@@ -481,9 +525,12 @@ export const getProductVariants = async (
     const res = await db
       .select({
         id: variants.id,
-        size: variants.size,
+        inch: variants.inch,
+        feet: variants.feet,
         stock: variants.quantity,
         price: variants.price,
+        costPrice: variants.costPrice,
+        msp: variants.msp,
         sold: sum(purchaseItems.quantity),
         revenue: sum(
           sql<number>`${purchaseItems.quantity} * ${purchaseItems.price}`,
@@ -493,7 +540,7 @@ export const getProductVariants = async (
       .leftJoin(purchaseItems, eq(purchaseItems.variantId, variants.id))
       .where(eq(variants.productId, Number(id)))
       .groupBy(variants.id)
-      .orderBy(asc(variants.size));
+      .orderBy(asc(sql`${variants.feet}::int * 12 + ${variants.inch}`));
 
     return { data: res };
   } catch (error) {

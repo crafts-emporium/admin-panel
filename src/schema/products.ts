@@ -1,10 +1,15 @@
+import { nanoid } from "nanoid";
 import * as z from "zod";
 
 export const variantsSchema = z.object({
   variantId: z.string(),
-  size: z.string().min(1, { message: "Size is required" }),
+  inch: z.string().optional(),
+  feet: z.string().optional(),
   quantity: z.string().min(1, { message: "Quantity is required" }),
   price: z.string().min(1, { message: "Price is required" }),
+  costPrice: z.string().min(1, { message: "Cost price is required" }),
+  msp: z.string().optional(),
+  description: z.string().optional(),
 });
 
 export const productSchema = z.object({
@@ -18,3 +23,14 @@ export const productSchema = z.object({
 
 export type TVariant = z.infer<typeof variantsSchema>;
 export type TProduct = z.infer<typeof productSchema>;
+
+export const getVariantsDefault = (): TVariant => ({
+  variantId: nanoid(),
+  inch: "",
+  feet: "",
+  quantity: "",
+  price: "",
+  costPrice: "",
+  msp: "",
+  description: "",
+});

@@ -1,0 +1,1 @@
+ALTER TABLE "variants" RENAME COLUMN "size" TO "inch";

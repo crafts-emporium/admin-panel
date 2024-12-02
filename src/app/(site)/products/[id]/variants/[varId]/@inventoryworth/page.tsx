@@ -1,32 +1,31 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { purchaseItems, variants } from "@/db/schema";
+import { variants } from "@/db/schema";
 import { formatNumber } from "@/functions/format-number";
 import { initializeDB } from "@/lib/db";
-import { and, eq, sum } from "drizzle-orm";
+import { and, eq, sql, sum } from "drizzle-orm";
 
 export default async function Page({
   params,
 }: {
-  params: Promise<{ id: string; size: string }>;
+  params: Promise<{ id: string; varId: string }>;
 }) {
-  const { id, size } = await params;
+  const { id, varId } = await params;
   const { db, client } = await initializeDB();
   const data = await db
-    .select({ count: sum(purchaseItems.quantity) })
-    .from(purchaseItems)
-    .innerJoin(variants, eq(variants.id, purchaseItems.variantId))
-    .where(
-      and(eq(variants.productId, Number(id)), eq(variants.size, Number(size))),
-    );
+    .select({
+      worth: sum(sql<number>`${variants.quantity} * ${variants.costPrice}`),
+    })
+    .from(variants)
+    .where(eq(variants.id, varId));
   await client.end();
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Total Sold</CardTitle>
+        <CardTitle>Inventory Worth</CardTitle>
       </CardHeader>
       <CardContent>
         <h1 className="sm:text-4xl text-3xl font-semibold">
-          {formatNumber(Number(data[0].count))}
+          ₹{formatNumber(Number(data[0]?.worth))}
         </h1>
       </CardContent>
     </Card>

@@ -96,6 +96,8 @@ export async function createSale(
             quantity: Number(item.quantity),
             purchaseId: purchase[0].id,
             variantId: item.variantId,
+            costPrice: Number(item.costPrice),
+            discountedPrice: Number(item.discountedPrice),
           });
         }),
       );

@@ -26,9 +26,10 @@ export default async function Page() {
       productId: products.id,
       title: products.title,
       image: products.image,
-      size: variants.size,
+      inch: variants.inch,
+      feet: variants.feet,
       quantity: sum(purchaseItems.quantity),
-      revenue: sum(sql`${purchaseItems.quantity} * ${variants.price}`),
+      revenue: sum(purchaseItems.discountedPrice),
     })
     .from(purchaseItems)
     .innerJoin(variants, eq(variants.id, purchaseItems.variantId))
@@ -39,11 +40,14 @@ export default async function Page() {
       variants.id,
       products.title,
       products.image,
-      variants.size,
+      variants.inch,
+      variants.feet,
       products.id,
     )
     .limit(5);
   await client.end();
+
+  // console.log(topProducts);
 
   const totalQuantity = topProducts.reduce(
     (total, current) => total + Number(current.quantity),
@@ -88,9 +92,14 @@ export default async function Page() {
                 </TableCell>
                 <TableCell>
                   <Link
-                    href={`/products/${topProduct.productId}/variants/${topProduct.size}`}
+                    href={`/products/${topProduct.productId}/variants/${topProduct.variantId}`}
                   >
-                    {topProduct.size} inch
+                    {topProduct.feet ? (
+                      <span>{topProduct.feet} ft&nbsp;</span>
+                    ) : (
+                      ""
+                    )}
+                    {topProduct.inch ? <span>{topProduct.inch} in</span> : ""}
                   </Link>
                 </TableCell>
                 <TableCell>

@@ -22,13 +22,15 @@ import {
   PencilRuler,
   Trash2,
 } from "lucide-react";
-import { TProduct } from "@/schema/products";
+import { TProduct, getVariantsDefault } from "@/schema/products";
 import { useDropzone } from "react-dropzone";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { nanoid } from "nanoid";
 import { UploadStatus } from "@/types/upload-status";
 import useUploadImage from "@/hooks/use-upload-image";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 
 export default function ProductForm({
   form,
@@ -78,7 +80,7 @@ export default function ProductForm({
 
   useLayoutEffect(() => {
     if (fields.length === 0) {
-      append({ variantId: nanoid(), price: "", quantity: "", size: "" });
+      append(getVariantsDefault());
     }
   }, [fields]);
 
@@ -155,10 +157,10 @@ export default function ProductForm({
           )}
         />
 
-        <div className="space-y-3">
+        <div className="space-y-3 @container">
           {fields?.map((field, index) => (
-            <section key={field.id} className="space-y-1.5">
-              <div className="flex justify-between items-center">
+            <section key={field.id} className="">
+              <div className="flex justify-between items-center mb-4">
                 <h3 className="text-sm">Variant {index + 1}</h3>
                 <Button
                   className="px-2 h-7"
@@ -169,17 +171,18 @@ export default function ProductForm({
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid @lg:grid-cols-2 grid-cols-1 gap-2">
+                <Label className="@lg:col-span-2">Size</Label>
                 <FormField
                   control={form.control}
-                  name={`variants.${index}.size`}
+                  name={`variants.${index}.feet`}
                   render={({ field }) => (
-                    <FormItem className="col-span-2">
+                    <FormItem>
                       <FormControl>
                         <div className="relative">
                           <Input
                             {...field}
-                            placeholder="Size"
+                            placeholder="Feet"
                             type="number"
                             className="pl-7"
                           />
@@ -187,6 +190,49 @@ export default function ProductForm({
                             className="absolute top-1/2 left-2 -translate-y-1/2"
                             size={14}
                           />
+                          <div
+                            className={cn(
+                              "absolute top-0 right-0 h-full w-auto px-2",
+                              "grid place-content-center",
+                            )}
+                          >
+                            <span className="text-muted-foreground text-sm">
+                              feet
+                            </span>
+                          </div>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name={`variants.${index}.inch`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <div className="relative">
+                          <Input
+                            {...field}
+                            placeholder="Inch"
+                            type="number"
+                            className="pl-7"
+                          />
+                          <PencilRuler
+                            className="absolute top-1/2 left-2 -translate-y-1/2"
+                            size={14}
+                          />
+                          <div
+                            className={cn(
+                              "absolute top-0 right-0 h-full w-auto px-2",
+                              "grid place-content-center",
+                            )}
+                          >
+                            <span className="text-muted-foreground text-sm">
+                              inch
+                            </span>
+                          </div>
                         </div>
                       </FormControl>
                       <FormMessage />
@@ -198,6 +244,7 @@ export default function ProductForm({
                   name={`variants.${index}.quantity`}
                   render={({ field }) => (
                     <FormItem>
+                      <FormLabel>Quantity</FormLabel>
                       <FormControl>
                         <div className="relative">
                           <Input
@@ -218,9 +265,58 @@ export default function ProductForm({
                 />
                 <FormField
                   control={form.control}
+                  name={`variants.${index}.costPrice`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Cost Price</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Input
+                            {...field}
+                            placeholder="Cost Price"
+                            type="number"
+                            className="pl-7"
+                          />
+                          <IndianRupee
+                            className="absolute top-1/2 left-2 -translate-y-1/2"
+                            size={14}
+                          />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name={`variants.${index}.msp`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>MSP</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Input
+                            {...field}
+                            placeholder="MSP"
+                            type="number"
+                            className="pl-7"
+                          />
+                          <IndianRupee
+                            className="absolute top-1/2 left-2 -translate-y-1/2"
+                            size={14}
+                          />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
                   name={`variants.${index}.price`}
                   render={({ field }) => (
                     <FormItem>
+                      <FormLabel>Body Rate</FormLabel>
                       <FormControl>
                         <div className="relative">
                           <Input
@@ -239,7 +335,25 @@ export default function ProductForm({
                     </FormItem>
                   )}
                 />
+                <FormField
+                  control={form.control}
+                  name={`variants.${index}.description`}
+                  render={({ field }) => (
+                    <FormItem className="@lg:col-span-2">
+                      <FormLabel>Description</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Textarea {...field} placeholder="Description" />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
+              {index < fields.length - 1 && (
+                <Separator className="my-10 bg-muted-foreground/70" />
+              )}
             </section>
           ))}
         </div>
@@ -247,9 +361,7 @@ export default function ProductForm({
           className="w-full"
           variant={"secondary"}
           type="button"
-          onClick={() =>
-            append({ variantId: nanoid(), price: "", quantity: "", size: "" })
-          }
+          onClick={() => append(getVariantsDefault())}
         >
           Add Variant
         </Button>

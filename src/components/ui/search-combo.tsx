@@ -18,6 +18,7 @@ type SearchComboContextProps = {
   onListChange: (list: any[]) => void;
   getListItems: (query: string) => Promise<any[]>;
   onLoadingChange: (loading: boolean) => void;
+  reset: () => void;
 };
 
 const SearchComboContext = React.createContext<SearchComboContextProps | null>(
@@ -78,6 +79,10 @@ const SearchCombo: React.FC<
     onEmptyChange?.(isEmpty);
   };
 
+  const reset = () => {
+    internal_setQuery("");
+  };
+
   React.useEffect(() => {
     internal_query &&
       handleGetListItems(internal_query).then((res) => {
@@ -118,6 +123,7 @@ const SearchCombo: React.FC<
         onListChange: handleListChange,
         getListItems: handleGetListItems,
         onLoadingChange: handleLoadingChange,
+        reset,
       }}
     >
       <Popover {...props}>{children}</Popover>

@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { isActionError } from "@/lib/utils";
 import { customerSchema } from "@/schema/customer";
-import { productSchema, TProduct } from "@/schema/products";
+import { getVariantsDefault, productSchema, TProduct } from "@/schema/products";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { nanoid } from "nanoid";
 import { useRouter } from "next/navigation";
@@ -20,7 +20,7 @@ export default function Page() {
     defaultValues: {
       title: "",
       description: "",
-      variants: [{ variantId: nanoid(), quantity: "", price: "", size: "" }],
+      variants: [getVariantsDefault()],
     },
   });
 

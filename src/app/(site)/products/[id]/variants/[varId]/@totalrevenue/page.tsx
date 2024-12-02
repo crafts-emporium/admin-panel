@@ -7,21 +7,17 @@ import { and, eq, sql, sum } from "drizzle-orm";
 export default async function Page({
   params,
 }: {
-  params: Promise<{ id: string; size: string }>;
+  params: Promise<{ id: string; varId: string }>;
 }) {
-  const { id, size } = await params;
+  const { id, varId } = await params;
   const { db, client } = await initializeDB();
   const data = await db
     .select({
-      revenue: sum(
-        sql<number>`${purchaseItems.price} * ${purchaseItems.quantity}`,
-      ),
+      revenue: sum(purchaseItems.discountedPrice),
     })
     .from(purchaseItems)
     .innerJoin(variants, eq(purchaseItems.variantId, variants.id))
-    .where(
-      and(eq(variants.productId, Number(id)), eq(variants.size, Number(size))),
-    );
+    .where(eq(variants.id, varId));
   await client.end();
 
   return (

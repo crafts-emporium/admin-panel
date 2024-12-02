@@ -112,7 +112,8 @@ export default async function Page({
                         <div>
                           <p className="text-base">{item.title}</p>
                           <p className="text-muted-foreground">
-                            {item.size} inch
+                            {item.feet ? <span>{item.feet} ft&nbsp;</span> : ""}
+                            {item.inch ? <span>{item.inch} in</span> : ""}
                           </p>
                         </div>
                       </div>

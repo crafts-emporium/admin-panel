@@ -36,11 +36,13 @@ export default async function Page({
         id: products.id,
         title: products.title,
         image: products.image,
-        size: variants.size,
+        inch: variants.inch,
+        feet: variants.feet,
       },
       quantity: purchaseItems.quantity,
       price: purchaseItems.price,
       subTotalPrice: sql<number>`${purchaseItems.quantity} * ${purchaseItems.price}`,
+      discountedPrice: purchaseItems.discountedPrice,
       totalDiscountedPrice: purchases.discountedPrice,
     })
     .from(purchases)
@@ -55,7 +57,8 @@ export default async function Page({
       purchaseItems.id,
       purchaseItems.variantId,
       products.id,
-      variants.size,
+      variants.inch,
+      variants.feet,
       purchaseItems.quantity,
       purchaseItems.price,
       purchases.discountedPrice,
@@ -75,7 +78,7 @@ export default async function Page({
               <TableHead className="p-5">Product</TableHead>
               <TableHead>Quantity</TableHead>
               <TableHead>Price</TableHead>
-              <TableHead>Sub Total</TableHead>
+              <TableHead>Total</TableHead>
               <TableHead>Discounted Price</TableHead>
             </TableRow>
           </TableHeader>
@@ -95,7 +98,17 @@ export default async function Page({
                       <div>
                         <h2 className="text-base">{item.product.title}</h2>
                         <p className="text-muted-foreground">
-                          {item.product.size} <span>inch</span>
+                          {item.product.feet ? (
+                            <span>{item.product.feet} ft&nbsp;</span>
+                          ) : (
+                            ""
+                          )}
+
+                          {item.product.inch ? (
+                            <span> {item.product.inch} in</span>
+                          ) : (
+                            ""
+                          )}
                         </p>
                       </div>
                     </div>
@@ -106,7 +119,9 @@ export default async function Page({
                 <TableCell>
                   ₹{formatNumber(Number(item.subTotalPrice))}
                 </TableCell>
-                <TableCell></TableCell>
+                <TableCell>
+                  ₹{formatNumber(Number(item.discountedPrice))}
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>

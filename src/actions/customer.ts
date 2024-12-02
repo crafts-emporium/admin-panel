@@ -272,7 +272,8 @@ export const getCustomerSaleDetails = async (
           'productId', ${products.id},
           'title', ${products.title},
           'image', ${products.image},
-          'size', ${variants.size},
+          'inch', ${variants.inch},
+          'feet', ${variants.feet},
           'quantity', ${purchaseItems.quantity},
           'price', ${purchaseItems.price}
         )          

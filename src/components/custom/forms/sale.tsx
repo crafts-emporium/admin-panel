@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/search-combo";
 import { TDBCustomer } from "@/db/schema";
 import { cn, isActionError } from "@/lib/utils";
-import { TSale } from "@/schema/sale";
+import { getSaleItemDefault, TSale } from "@/schema/sale";
 import { TDBProductWithVariantsForSale } from "@/types/product";
 import { PopoverClose } from "@radix-ui/react-popover";
 import {
@@ -40,15 +40,18 @@ import { useFieldArray, useForm } from "react-hook-form";
 import AdvancedImage from "../advanced-image";
 import useSaleFormMetadata from "@/hooks/use-sale-form-metadata";
 import { Input } from "@/components/ui/input";
-import { useEffect } from "react";
+import React, { useEffect } from "react";
 import InputWithPrefixNode from "@/components/ui/input-with-prefixnode";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { formatNumber } from "@/functions/format-number";
 
 export default function SaleForm({
   form,
@@ -61,9 +64,10 @@ export default function SaleForm({
     customers,
     products,
     setCustomers,
-    setProducts,
     updateProducts,
     deleteProducts,
+    selectedProducts,
+    updateSelectedProduct,
   } = useSaleFormMetadata();
   const items = useFieldArray({
     control: form.control,
@@ -72,8 +76,16 @@ export default function SaleForm({
   const customerDetails = customers?.find(
     (item) => item.id.toString() === form.watch("customerId"),
   );
-  const productDetails = (index: number) => (id: string) =>
-    products?.[index]?.find((item) => item.id.toString() === id);
+  const productDetails = (id: string) => {
+    return selectedProducts?.find((item) => item.id.toString() === id);
+  };
+
+  const variantDetails = (variantId: string) => {
+    return selectedProducts
+      ?.map((i) => i.variants)
+      ?.flat(1)
+      ?.find((i) => i.id === variantId);
+  };
 
   const handleGetCustomersList = async (query: string) => {
     const res = await getCustomers(query, 0, 4);
@@ -92,12 +104,7 @@ export default function SaleForm({
   };
 
   const handleAppendItem = () => {
-    items.append({
-      variantId: "",
-      price: "",
-      quantity: "",
-      productId: "",
-    });
+    items.append(getSaleItemDefault());
   };
 
   const handleRemoveItem = (index: number) => () => {
@@ -105,28 +112,46 @@ export default function SaleForm({
     items.remove(index);
   };
 
-  useEffect(() => {
-    items.fields.length === 0 && handleAppendItem();
-  }, [items.fields]);
+  const totalDiscountedPriceFromIndividual = form
+    .watch("saleItems")
+    ?.reduce((total, item) => {
+      return total + Number(item.discountedPrice);
+    }, 0);
 
-  const totalPrice =
-    form.watch("saleItems")?.reduce((total, item) => {
-      return total + Number(item.price) * Number(item.quantity);
-    }, 0) || "";
+  const totalBodyRates = form.watch("saleItems")?.reduce((total, item) => {
+    return total + Number(item.price) * Number(item.quantity);
+  }, 0);
+
+  const totalMsp = form.watch("saleItems")?.reduce((total, saleItem) => {
+    return (
+      total +
+      Number(variantDetails(saleItem.variantId)?.msp) *
+        Number(saleItem.quantity)
+    );
+  }, 0);
+
+  const totalCostPrice = form.watch("saleItems")?.reduce((total, item) => {
+    return (
+      total +
+      Number(variantDetails(item.variantId)?.costPrice) * Number(item.quantity)
+    );
+  }, 0);
 
   useEffect(() => {
     // set total price
-    form.setValue("totalPrice", totalPrice?.toString());
+    form.setValue("totalPrice", totalBodyRates?.toString());
+  }, [totalBodyRates]);
 
-    // set discounted price if it doesn't exists or is greater than total price
-    // form.getValues("totalDiscountedPrice")
-    //   ? Number(form.getValues("totalDiscountedPrice")) > Number(totalPrice)
-    //     ? form.setValue("totalDiscountedPrice", totalPrice?.toString())
-    //     : null
-    //   : form.setValue("totalDiscountedPrice", totalPrice?.toString());
-  }, [totalPrice]);
+  useEffect(() => {
+    form.setValue(
+      "totalDiscountedPrice",
+      (totalDiscountedPriceFromIndividual || "").toString(),
+    );
+  }, [totalDiscountedPriceFromIndividual]);
 
-  // console.log(form.watch());
+  useEffect(() => {
+    items.fields.length === 0 && handleAppendItem();
+  }, [items.fields]);
 
   return (
     <Form {...form}>
@@ -205,195 +230,303 @@ export default function SaleForm({
             </FormItem>
           )}
         />
-        <div className="space-y-3">
+        <div className="space-y-8">
           {items.fields.map((item, index) => (
-            <section key={item.id} className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name={`saleItems.${index}`}
-                render={({ field }) => (
-                  <FormItem className="col-span-2">
-                    <div className="flex justify-between items-center">
-                      <FormLabel>Item {index + 1}</FormLabel>
-                      <Button
-                        type="button"
-                        variant={"destructive"}
-                        className="px-1 h-6"
-                        onClick={handleRemoveItem(index)}
-                      >
-                        <Trash2 size={10} className="scale-90" />
-                      </Button>
-                    </div>
-                    <FormControl>
-                      <SearchCombo
-                        getListItems={handleGetProductList}
-                        list={products?.[index] || []}
-                        onListChange={(e) => {
-                          updateProducts(index, e);
-                        }}
-                      >
-                        <SearchComboTrigger asChild>
-                          <Button
-                            variant={"outline"}
-                            className="w-full flex justify-between"
-                          >
-                            <div className="flex items-center gap-2">
-                              {productDetails(index)(field.value.productId)
-                                ?.title || "Select Product"}
-                            </div>
-                            <ChevronDown size={16} />
-                          </Button>
-                        </SearchComboTrigger>
-                        <SearchComboContent>
-                          <SearchComboInput placeholder="Search..." />
-                          <SearchComboEmpty>
-                            {(state) =>
-                              state.loading ? (
-                                <Loader2 className="animate-spin h-4 w-4" />
-                              ) : state.query ? (
-                                <Link href={"/products/add"}>
-                                  <Button>Add Product</Button>
-                                </Link>
-                              ) : (
-                                <p className="text-muted-foreground">
-                                  No products found
-                                </p>
-                              )
-                            }
-                          </SearchComboEmpty>
-                          <SearchComboList>
-                            {(state) =>
-                              (
-                                state.list as TDBProductWithVariantsForSale[]
-                              )?.map((product) => (
-                                <SearchComboListItem
-                                  key={product.id}
-                                  onClick={() =>
-                                    form.setValue(`saleItems.${index}`, {
-                                      ...form.getValues(`saleItems.${index}`),
-                                      productId: product.id.toString(),
-                                      variantId: "",
-                                    })
-                                  }
-                                  className="flex flex-row justify-start items-center gap-3"
-                                >
-                                  <AdvancedImage
-                                    imageId={product.image ?? ""}
-                                    alt="product-image"
-                                    height={50}
-                                    width={50}
-                                    className="rounded-md shrink-0 h-12 w-12 object-cover"
-                                  />
-                                  <div className="self-stretch spce-y-1">
-                                    <SearchComboListItemTitle>
-                                      {product.title}
-                                    </SearchComboListItemTitle>
-                                  </div>
-                                </SearchComboListItem>
-                              ))
-                            }
-                          </SearchComboList>
-                        </SearchComboContent>
-                      </SearchCombo>
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
+            <React.Fragment key={item.id.toString()}>
+              {index !== 0 && <Separator className="bg-muted-foreground/70" />}
+              <section key={item.id} className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name={`saleItems.${index}`}
+                  render={({ field }) => (
+                    <FormItem className="col-span-2">
+                      <div className="flex justify-between items-center">
+                        <FormLabel>Item {index + 1}</FormLabel>
+                        <Button
+                          type="button"
+                          variant={"destructive"}
+                          className="px-1 h-6"
+                          onClick={handleRemoveItem(index)}
+                        >
+                          <Trash2 size={10} className="scale-90" />
+                        </Button>
+                      </div>
+                      <FormControl>
+                        <SearchCombo
+                          getListItems={handleGetProductList}
+                          list={products?.[index] || []}
+                          onListChange={(e) => {
+                            updateProducts(index, e);
+                          }}
+                        >
+                          <SearchComboTrigger asChild>
+                            <Button
+                              variant={"outline"}
+                              className="w-full flex justify-between"
+                            >
+                              <div className="flex items-center gap-2">
+                                {productDetails(field.value.productId)?.title ||
+                                  "Select Product"}
+                              </div>
+                              <ChevronDown size={16} />
+                            </Button>
+                          </SearchComboTrigger>
+                          <SearchComboContent>
+                            <SearchComboInput placeholder="Search..." />
+                            <SearchComboEmpty>
+                              {(state) =>
+                                state.loading ? (
+                                  <Loader2 className="animate-spin h-4 w-4" />
+                                ) : state.query ? (
+                                  <Link href={"/products/add"}>
+                                    <Button>Add Product</Button>
+                                  </Link>
+                                ) : (
+                                  <p className="text-muted-foreground">
+                                    No products found
+                                  </p>
+                                )
+                              }
+                            </SearchComboEmpty>
+                            <SearchComboList>
+                              {(state) =>
+                                (
+                                  state.list as TDBProductWithVariantsForSale[]
+                                )?.map((product, idx) => (
+                                  <SearchComboListItem
+                                    key={idx}
+                                    onClick={() => {
+                                      form.setValue(`saleItems.${index}`, {
+                                        ...form.getValues(`saleItems.${index}`),
+                                        productId: product.id.toString(),
+                                        variantId: "",
+                                      });
+                                      updateSelectedProduct(index, product);
+                                      state.reset();
+                                    }}
+                                    className="flex flex-row justify-start items-center gap-3"
+                                  >
+                                    <AdvancedImage
+                                      imageId={product.image ?? ""}
+                                      alt="product-image"
+                                      height={50}
+                                      width={50}
+                                      className="rounded-md shrink-0 h-12 w-12 object-cover"
+                                    />
+                                    <div className="self-stretch spce-y-1">
+                                      <SearchComboListItemTitle>
+                                        {product?.title}
+                                      </SearchComboListItemTitle>
+                                    </div>
+                                  </SearchComboListItem>
+                                ))
+                              }
+                            </SearchComboList>
+                          </SearchComboContent>
+                        </SearchCombo>
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={form.control}
-                name={`saleItems.${index}`}
-                render={({ field }) => (
-                  <FormItem
-                    className={cn(
-                      "col-span-2 hidden",
-                      field.value.productId && "block",
-                    )}
-                  >
-                    <FormControl>
+                <FormField
+                  control={form.control}
+                  name={`saleItems.${index}.variantId`}
+                  render={({ field }) => (
+                    <FormItem
+                      className={cn(
+                        "col-span-2 hidden",
+                        form.watch(`saleItems.${index}.productId`) && "block",
+                      )}
+                    >
                       <Select
-                        value={field.value.variantId}
-                        onValueChange={(e) =>
+                        value={field.value}
+                        onValueChange={(e) => {
+                          field.onChange(e);
+
                           form.setValue(`saleItems.${index}`, {
                             ...form.getValues(`saleItems.${index}`),
-                            variantId: e,
-                            price:
-                              productDetails(index)(field.value.productId)
-                                ?.variants?.find((v) => v.id.toString() === e)
-                                ?.price?.toString() ?? "",
-                          })
-                        }
+                            price: variantDetails(e)?.price?.toString() ?? "",
+                            costPrice:
+                              variantDetails(e)?.costPrice?.toString() ?? "",
+                          });
+
+                          form.setValue(
+                            `saleItems.${index}.discountedPrice`,
+                            Number(
+                              Number(variantDetails(e)?.price) *
+                                Number(
+                                  form.getValues(`saleItems.${index}.quantity`),
+                                ),
+                            ).toString(),
+                          );
+                        }}
                       >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select Size" />
-                        </SelectTrigger>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Size" />
+                          </SelectTrigger>
+                        </FormControl>
                         <SelectContent>
-                          {productDetails(index)(
-                            field.value.productId,
-                          )?.variants?.map((variant) => (
-                            <SelectItem key={variant.id} value={variant.id}>
-                              <p className="flex justify-start items-center gap-0.5">
-                                {variant.size} inch
-                                <Dot /> ₹{" "}
-                                <span className="font-medium">
-                                  {variant.price}
-                                </span>
-                                <Dot />
-                                <span className="text-muted-foreground">
-                                  {variant.quantity} left
-                                </span>
-                              </p>
-                            </SelectItem>
-                          ))}
+                          <SelectGroup>
+                            {productDetails(
+                              form.watch(`saleItems.${index}.productId`),
+                            )?.variants?.map((variant) => (
+                              <SelectItem key={variant.id} value={variant.id}>
+                                <p className="flex justify-start items-center">
+                                  {variant.feet ? (
+                                    <span>
+                                      {variant.feet}
+                                      <span className="ml-0.5">ft&nbsp;</span>
+                                    </span>
+                                  ) : (
+                                    ""
+                                  )}
+                                  {variant.inch ? (
+                                    <span>
+                                      {variant.inch}
+                                      <span className="ml-0.5">in</span>
+                                    </span>
+                                  ) : (
+                                    ""
+                                  )}
+                                  <Dot /> ₹{" "}
+                                  <span className="font-medium">
+                                    {formatNumber(variant.price)}
+                                  </span>
+                                  <Dot /> ₹{" "}
+                                  <span className="font-medium">
+                                    {formatNumber(Number(variant.msp))}
+                                  </span>
+                                  <Dot /> ₹{" "}
+                                  <span className="font-medium">
+                                    {formatNumber(variant.costPrice)}
+                                  </span>
+                                  <Dot />
+                                  <span className="text-muted-foreground">
+                                    {variant.quantity} left
+                                  </span>
+                                </p>
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
                         </SelectContent>
                       </Select>
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={form.control}
-                name={`saleItems.${index}.quantity`}
-                render={({ field }) => (
-                  <FormItem
-                    className={cn(
-                      "hidden",
-                      form.watch(`saleItems.${index}.variantId`) && "block",
-                    )}
-                  >
-                    <FormControl>
-                      <Input {...field} type="number" placeholder="Quantity" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                <FormField
+                  control={form.control}
+                  name={`saleItems.${index}.quantity`}
+                  render={({ field }) => (
+                    <FormItem
+                      className={cn(
+                        "hidden",
+                        form.watch(`saleItems.${index}.variantId`) && "block",
+                      )}
+                    >
+                      <FormControl>
+                        <Input
+                          {...field}
+                          onChange={(e) => {
+                            field.onChange(e);
+                            form.setValue(
+                              `saleItems.${index}.discountedPrice`,
+                              (
+                                Number(e.target.value) *
+                                Number(
+                                  variantDetails(
+                                    form.getValues(
+                                      `saleItems.${index}.variantId`,
+                                    ),
+                                  )?.price,
+                                )
+                              ).toString(),
+                            );
+                          }}
+                          type="number"
+                          placeholder="Quantity"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={form.control}
-                name={`saleItems.${index}`}
-                render={({ field }) => (
-                  <FormItem
-                    className={cn(
-                      "hidden",
-                      form.watch(`saleItems.${index}.variantId`) && "block",
-                    )}
-                  >
-                    <FormControl>
-                      <InputWithPrefixNode
-                        PrefixNode={IndianRupee}
-                        value={
-                          Number(form.watch(`saleItems.${index}.quantity`)) *
-                          Number(field.value.price)
-                        }
-                        readOnly
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-            </section>
+                <FormField
+                  control={form.control}
+                  name={`saleItems.${index}`}
+                  render={({ field }) => (
+                    <FormItem
+                      className={cn(
+                        "hidden",
+                        form.watch(`saleItems.${index}.variantId`) && "block",
+                      )}
+                    >
+                      <FormControl>
+                        <Input
+                          value={
+                            "₹" +
+                            formatNumber(
+                              Number(
+                                form.watch(`saleItems.${index}.quantity`),
+                              ) * Number(field.value.price),
+                            ) +
+                            " — " +
+                            "₹" +
+                            formatNumber(
+                              Number(
+                                form.watch(`saleItems.${index}.quantity`),
+                              ) *
+                                Number(
+                                  variantDetails(field.value.variantId)?.msp,
+                                ),
+                            ) +
+                            " — " +
+                            "₹" +
+                            formatNumber(
+                              Number(
+                                form.watch(`saleItems.${index}.quantity`),
+                              ) *
+                                Number(
+                                  variantDetails(field.value.variantId)
+                                    ?.costPrice,
+                                ),
+                            )
+                          }
+                          readOnly
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name={`saleItems.${index}.discountedPrice`}
+                  render={({ field }) => (
+                    <FormItem
+                      className={cn(
+                        "hidden col-span-2",
+                        form.watch(`saleItems.${index}.variantId`) && "block",
+                      )}
+                    >
+                      <FormLabel>Discounted Price </FormLabel>
+                      <FormControl>
+                        <InputWithPrefixNode
+                          PrefixNode={IndianRupee}
+                          type="number"
+                          placeholder="Discounted Price"
+                          className={field.value?.toString()}
+                          {...field}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </section>
+            </React.Fragment>
           ))}
         </div>
         <div className="flex justify-end">
@@ -413,10 +546,18 @@ export default function SaleForm({
             render={({ field }) => (
               <FormItem>
                 <FormControl>
-                  <InputWithPrefixNode
-                    PrefixNode={IndianRupee}
+                  <Input
                     placeholder="Total Price"
-                    value={field.value}
+                    value={
+                      "₹" +
+                      formatNumber(Number(totalBodyRates)) +
+                      " — " +
+                      "₹" +
+                      formatNumber(Number(totalMsp)) +
+                      " — " +
+                      "₹" +
+                      formatNumber(Number(totalCostPrice))
+                    }
                     readOnly
                   />
                 </FormControl>
@@ -429,11 +570,12 @@ export default function SaleForm({
             name="totalDiscountedPrice"
             render={({ field }) => (
               <FormItem>
+                <FormLabel>Total Discounted Price</FormLabel>
                 <FormControl>
                   <InputWithPrefixNode
                     PrefixNode={IndianRupee}
                     type="number"
-                    placeholder={`Total Discounted Price : ${totalPrice}`}
+                    placeholder={"Total Discounted Price"}
                     {...field}
                   />
                 </FormControl>

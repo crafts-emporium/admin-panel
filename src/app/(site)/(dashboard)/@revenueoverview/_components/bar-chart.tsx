@@ -7,6 +7,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import { formatNumber } from "@/functions/format-number";
 
 export type ChartData = { date: string; revenue: number };
 
@@ -40,6 +41,23 @@ export function RevenueChart({ data }: { data: ChartData[] }) {
         <ChartTooltip
           cursor={false}
           content={<ChartTooltipContent hideLabel />}
+          formatter={(value, name, item, index) => (
+            <>
+              <div
+                className="h-2.5 w-2.5 shrink-0 rounded-[2px] bg-[--color-bg]"
+                style={
+                  {
+                    "--color-bg": `var(--color-${name})`,
+                  } as React.CSSProperties
+                }
+              />
+              {chartConfig[name as keyof typeof chartConfig]?.label || name}
+              <div className="ml-auto flex items-baseline gap-0.5 font-mono font-medium tabular-nums text-foreground">
+                <span className="font-normal text-muted-foreground">₹</span>
+                {formatNumber(Number(value))}
+              </div>
+            </>
+          )}
         />
         <Bar dataKey="revenue" fill="var(--color-revenue)" radius={8}>
           <LabelList

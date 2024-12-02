@@ -44,7 +44,7 @@ export default function AdvancedImage({
     // @ts-ignore
     <Image
       src={imageUrl || fallback}
-      className={cn(className)}
+      className={cn("border", className)}
       {...props}
       onError={() => setImageUrl(fallback)}
     />

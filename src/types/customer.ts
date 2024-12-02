@@ -2,7 +2,8 @@ export type CustomerSaleItem = {
   productId: number;
   title: string;
   image: string | null;
-  size: string;
+  inch: string;
+  feet: string;
   quantity: number;
   price: number;
 };

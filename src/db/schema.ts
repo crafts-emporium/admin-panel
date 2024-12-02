@@ -39,8 +39,12 @@ export const variants = pgTable("variants", {
     .$defaultFn(() => nanoid()),
   productId: integer("product_id").references(() => products.id),
   quantity: integer("quantity").notNull(),
+  costPrice: integer("cost_price").notNull().default(0),
+  msp: integer("msp"),
+  description: text("description"),
   price: integer("price").notNull(),
-  size: smallint("size").notNull(),
+  inch: smallint("inch").notNull(),
+  feet: smallint("feet"),
   createdAt: timestamp("created_at")
     .notNull()
     .default(sql`CURRENT_TIMESTAMP`),
@@ -55,13 +59,19 @@ export const purchaseItems = pgTable("purchase_items", {
   ),
   quantity: integer("quantity").notNull(),
   price: integer("price").notNull(),
+  costPrice: integer("cost_price")
+    .notNull()
+    .default(sql`0`),
+  discountedPrice: integer("discounted_price").default(sql`0`),
 });
 
 export const purchases = pgTable("purchases", {
   id: serial("id").primaryKey(),
   customerId: integer("customer_id"),
   price: integer("price").notNull(),
-  discountedPrice: integer("discounted_price").notNull(),
+  discountedPrice: integer("discounted_price")
+    .notNull()
+    .default(sql`0`),
   deletedAt: timestamp("deleted_at").default(sql`NULL`),
   createdAt: timestamp("created_at")
     .notNull()
