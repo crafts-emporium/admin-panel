@@ -169,6 +169,20 @@
       "when": 1733152016716,
       "tag": "0023_jazzy_grim_reaper",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1733219572669,
+      "tag": "0024_condemned_veda",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1733220234713,
+      "tag": "0025_sweet_sersi",
+      "breakpoints": true
     }
   ]
 }

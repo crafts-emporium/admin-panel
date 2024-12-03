@@ -1,0 +1,1 @@
+ALTER TABLE "variants" ALTER COLUMN "inch" DROP NOT NULL;

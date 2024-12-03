@@ -4,6 +4,7 @@ import {
   date,
   integer,
   pgTable,
+  real,
   serial,
   smallint,
   text,
@@ -43,8 +44,8 @@ export const variants = pgTable("variants", {
   msp: integer("msp"),
   description: text("description"),
   price: integer("price").notNull(),
-  inch: smallint("inch").notNull(),
-  feet: smallint("feet"),
+  inch: real("inch"),
+  feet: real("feet"),
   createdAt: timestamp("created_at")
     .notNull()
     .default(sql`CURRENT_TIMESTAMP`),
