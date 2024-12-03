@@ -130,7 +130,7 @@ export default async function Page({
               <TableCell colSpan={3} className="p-6"></TableCell>
               <TableCell>₹{formatNumber(totalPrice)}</TableCell>
               <TableCell>
-                ₹{formatNumber(data[0].totalDiscountedPrice)}
+                ₹{formatNumber(Number(data[0]?.totalDiscountedPrice))}
               </TableCell>
             </TableRow>
           </TableFooter>
