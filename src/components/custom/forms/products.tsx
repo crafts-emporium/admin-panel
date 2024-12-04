@@ -31,6 +31,7 @@ import { UploadStatus } from "@/types/upload-status";
 import useUploadImage from "@/hooks/use-upload-image";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import InputWithPrefixNode from "@/components/ui/input-with-prefixnode";
 
 export default function ProductForm({
   form,
@@ -180,15 +181,13 @@ export default function ProductForm({
                     <FormItem>
                       <FormControl>
                         <div className="relative">
-                          <Input
+                          <InputWithPrefixNode
                             {...field}
                             placeholder="Feet"
                             type="number"
                             className="pl-7"
-                          />
-                          <PencilRuler
-                            className="absolute top-1/2 left-2 -translate-y-1/2"
-                            size={14}
+                            min={0}
+                            PrefixNode={PencilRuler}
                           />
                           <div
                             className={cn(
@@ -213,15 +212,13 @@ export default function ProductForm({
                     <FormItem>
                       <FormControl>
                         <div className="relative">
-                          <Input
+                          <InputWithPrefixNode
                             {...field}
                             placeholder="Inch"
                             type="number"
                             className="pl-7"
-                          />
-                          <PencilRuler
-                            className="absolute top-1/2 left-2 -translate-y-1/2"
-                            size={14}
+                            min={0}
+                            PrefixNode={PencilRuler}
                           />
                           <div
                             className={cn(
@@ -246,18 +243,14 @@ export default function ProductForm({
                     <FormItem>
                       <FormLabel>Quantity</FormLabel>
                       <FormControl>
-                        <div className="relative">
-                          <Input
-                            {...field}
-                            placeholder="Quantity"
-                            type="number"
-                            className="pl-7"
-                          />
-                          <Hash
-                            className="absolute top-1/2 left-2 -translate-y-1/2"
-                            size={14}
-                          />
-                        </div>
+                        <InputWithPrefixNode
+                          {...field}
+                          placeholder="Quantity"
+                          type="number"
+                          className="pl-7"
+                          min={0}
+                          PrefixNode={Hash}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -270,18 +263,14 @@ export default function ProductForm({
                     <FormItem>
                       <FormLabel>Cost Price</FormLabel>
                       <FormControl>
-                        <div className="relative">
-                          <Input
-                            {...field}
-                            placeholder="Cost Price"
-                            type="number"
-                            className="pl-7"
-                          />
-                          <IndianRupee
-                            className="absolute top-1/2 left-2 -translate-y-1/2"
-                            size={14}
-                          />
-                        </div>
+                        <InputWithPrefixNode
+                          {...field}
+                          placeholder="Cost Price"
+                          type="number"
+                          className="pl-7"
+                          min={0}
+                          PrefixNode={IndianRupee}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -294,18 +283,14 @@ export default function ProductForm({
                     <FormItem>
                       <FormLabel>MSP</FormLabel>
                       <FormControl>
-                        <div className="relative">
-                          <Input
-                            {...field}
-                            placeholder="MSP"
-                            type="number"
-                            className="pl-7"
-                          />
-                          <IndianRupee
-                            className="absolute top-1/2 left-2 -translate-y-1/2"
-                            size={14}
-                          />
-                        </div>
+                        <InputWithPrefixNode
+                          {...field}
+                          placeholder="MSP"
+                          type="number"
+                          className="pl-7"
+                          min={0}
+                          PrefixNode={IndianRupee}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -318,18 +303,14 @@ export default function ProductForm({
                     <FormItem>
                       <FormLabel>Body Rate</FormLabel>
                       <FormControl>
-                        <div className="relative">
-                          <Input
-                            {...field}
-                            placeholder="Price"
-                            type="number"
-                            className="pl-7"
-                          />
-                          <IndianRupee
-                            className="absolute top-1/2 left-2 -translate-y-1/2"
-                            size={14}
-                          />
-                        </div>
+                        <InputWithPrefixNode
+                          {...field}
+                          placeholder="Price"
+                          type="number"
+                          className="pl-7"
+                          min={0}
+                          PrefixNode={IndianRupee}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

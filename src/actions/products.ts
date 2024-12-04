@@ -306,7 +306,16 @@ export const updateProduct = async ({
         .from(variants)
         .where(eq(variants.productId, id));
 
-      const currentVariants = data.variants || [];
+      const currentVariants: typeof data.variants = [];
+
+      data.variants?.forEach((v) => {
+        const isPresent = currentVariants.some(
+          (cv) => cv.inch === v.inch && cv.feet === v.feet,
+        );
+        if (!isPresent) {
+          currentVariants.push(v);
+        }
+      });
 
       const removedVariants = prevVariants.filter(
         (prevVariant) =>

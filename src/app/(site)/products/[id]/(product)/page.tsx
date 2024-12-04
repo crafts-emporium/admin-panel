@@ -20,7 +20,7 @@ import { cn, isActionError } from "@/lib/utils";
 import { Info, MoreHorizontal, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { purchaseItems, variants } from "@/db/schema";
-import { asc, eq, sql, sum } from "drizzle-orm";
+import { and, asc, eq, isNull, sql, sum } from "drizzle-orm";
 
 export default async function Page({
   params,
@@ -43,7 +43,7 @@ export default async function Page({
     })
     .from(variants)
     .leftJoin(purchaseItems, eq(purchaseItems.variantId, variants.id))
-    .where(eq(variants.productId, Number(id)))
+    .where(and(eq(variants.productId, Number(id)), isNull(variants.deletedAt)))
     .groupBy(variants.id)
     .orderBy(
       asc(

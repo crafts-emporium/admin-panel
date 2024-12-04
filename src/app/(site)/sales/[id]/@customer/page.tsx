@@ -28,10 +28,10 @@ export default async function Page({
 
   return (
     <header>
-      <Link href={`/customers/${customer[0].id}`}>
+      <Link href={`/customers/${customer[0]?.id}`}>
         <PageHeader>
-          <PageTitle>{customer[0].name}</PageTitle>
-          <PageDescription>{customer[0].phone}</PageDescription>
+          <PageTitle>{customer[0]?.name}</PageTitle>
+          <PageDescription>{customer[0]?.phone}</PageDescription>
         </PageHeader>
       </Link>
     </header>

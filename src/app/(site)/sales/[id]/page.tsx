@@ -18,8 +18,9 @@ import {
 } from "@/db/schema";
 import { formatNumber } from "@/functions/format-number";
 import { initializeDB } from "@/lib/db";
-import { desc, eq, sql, sum } from "drizzle-orm";
+import { and, desc, eq, isNull, sql, sum } from "drizzle-orm";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 
 export default async function Page({
   params,
@@ -49,7 +50,7 @@ export default async function Page({
     .leftJoin(purchaseItems, eq(purchases.id, purchaseItems.purchaseId))
     .leftJoin(variants, eq(purchaseItems.variantId, variants.id))
     .innerJoin(products, eq(variants.productId, products.id))
-    .where(eq(purchases.id, Number(id)))
+    .where(and(eq(purchases.id, Number(id)), isNull(purchases.deletedAt)))
     .orderBy(
       desc(sql<number>`${purchaseItems.quantity} * ${purchaseItems.price}`),
     )
@@ -65,9 +66,12 @@ export default async function Page({
     );
 
   await client.end();
+
   const totalPrice = data.reduce((total, item) => {
     return total + Number(item.subTotalPrice);
   }, 0);
+
+  if (!data.length) return notFound();
 
   return (
     <Card>
@@ -86,7 +90,7 @@ export default async function Page({
             {data.map((item) => (
               <TableRow key={item.id}>
                 <TableCell className="p-5">
-                  <Link href={`/products/${item.product.id}`}>
+                  <Link href={`/products/${item.product?.id}`}>
                     <div className="min-w-[200px] flex justify-start items-center gap-3">
                       <AdvancedImage
                         alt={item.product.title}

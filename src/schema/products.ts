@@ -17,7 +17,34 @@ export const productSchema = z.object({
   description: z.string().optional(),
   variants: z
     .array(variantsSchema)
-    .min(1, { message: "At least one variant is required" }),
+    .min(1, { message: "At least one variant is required" })
+    .superRefine((variants, ctx) => {
+      const seen = new Map<string, number[]>();
+      const duplicates: number[] = [];
+
+      variants.forEach((v, idx) => {
+        const key = `${Number(v.inch)}-${Number(v.feet)}`;
+        if (!seen.has(key)) {
+          seen.set(key, []);
+        }
+
+        seen.get(key)!.push(idx);
+      });
+
+      for (const [key, indices] of seen.entries()) {
+        if (indices.length > 1) {
+          duplicates.push(...indices);
+        }
+      }
+
+      duplicates.forEach((idx) => {
+        ctx.addIssue({
+          code: "custom",
+          message: "Duplicate variant found",
+          path: [`${idx}.inch`],
+        });
+      });
+    }),
   imageId: z.string().optional(),
 });
 
