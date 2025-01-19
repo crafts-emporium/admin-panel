@@ -13,7 +13,7 @@ import { ServerActionResponse } from "@/lib/utils";
 import { customerSchema, TCustomer } from "@/schema/customer";
 import { count, desc, eq, gt, or, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { CustomersCache, CustomersCountCache } from "@/lib/cache/customers";
+// import { CustomersCache, CustomersCountCache } from "@/lib/cache/customers";
 import { CustomerSale, CustomerSaleItem } from "@/types/customer";
 
 const defaultLimit = 10;
@@ -40,7 +40,7 @@ export const getCustomersCountFromDB = async () => {
 
 export const createCustomer = async (
   data: TCustomer,
-): Promise<ServerActionResponse<{ data: TDBCustomer; total: number }>> => {
+): Promise<ServerActionResponse<{ data: TDBCustomer }>> => {
   const { db, client } = await initializeDB();
   try {
     // validate the data
@@ -56,24 +56,23 @@ export const createCustomer = async (
         address: data.address,
       })
       .returning();
-    // check the cached customers count
-    let total = await CustomersCountCache.get();
-    if (!total) {
-      total = await getCustomersCountFromDB();
-      await CustomersCountCache.set(total);
-    } else {
-      //increment the count in cache
-      total = await CustomersCountCache.incr();
-    }
+    // // check the cached customers count
+    // let total = await CustomersCountCache.get();
+    // if (!total) {
+    //   total = await getCustomersCountFromDB();
+    //   await CustomersCountCache.set(total);
+    // } else {
+    //   //increment the count in cache
+    //   total = await CustomersCountCache.incr();
+    // }
 
-    //update the customers data cache
-    await CustomersCache.set(await getCustomersFromDBWithoutQuery());
-    //revalidate the path
-    revalidatePath("/customers");
+    // //update the customers data cache
+    // await CustomersCache.set(await getCustomersFromDBWithoutQuery());
+    // //revalidate the path
+    // revalidatePath("/customers");
 
     return {
       data: customer[0],
-      total: Number(total),
     };
   } catch (error) {
     return {
@@ -87,7 +86,7 @@ export const createCustomer = async (
 export const updateCustomer = async (
   data: TCustomer,
   id: number,
-): Promise<ServerActionResponse<{ data: TDBCustomer; total: number }>> => {
+): Promise<ServerActionResponse<{ data: TDBCustomer }>> => {
   const { db, client } = await initializeDB();
   try {
     // validate the data
@@ -105,21 +104,20 @@ export const updateCustomer = async (
       .where(eq(customers.id, id))
       .returning();
 
-    //update the customers data cache
-    await CustomersCache.set(await getCustomersFromDBWithoutQuery());
+    // //update the customers data cache
+    // await CustomersCache.set(await getCustomersFromDBWithoutQuery());
 
-    let total = await CustomersCountCache.get();
-    if (!total) {
-      total = await getCustomersCountFromDB();
-      await CustomersCountCache.set(total);
-    }
+    // let total = await CustomersCountCache.get();
+    // if (!total) {
+    //   total = await getCustomersCountFromDB();
+    //   await CustomersCountCache.set(total);
+    // }
 
-    //revalidate the path
-    revalidatePath("/customers");
+    // //revalidate the path
+    // revalidatePath("/customers");
 
     return {
       data: customer[0],
-      total: Number(total),
     };
   } catch (error) {
     return {
@@ -132,27 +130,26 @@ export const updateCustomer = async (
 
 export const deleteCustomer = async (
   id: number,
-): Promise<ServerActionResponse<{ status: boolean; total: number }>> => {
+): Promise<ServerActionResponse<{ status: boolean }>> => {
   const { db, client } = await initializeDB();
   try {
     // delete from db
     await db.delete(customers).where(eq(customers.id, id));
-    let total = await CustomersCountCache.get();
-    if (!total) {
-      total = await getCustomersCountFromDB();
-      await CustomersCountCache.set(total);
-    } else {
-      total = await CustomersCountCache.decr();
-    }
+    // let total = await CustomersCountCache.get();
+    // if (!total) {
+    //   total = await getCustomersCountFromDB();
+    //   await CustomersCountCache.set(total);
+    // } else {
+    //   total = await CustomersCountCache.decr();
+    // }
 
-    // update the customers data cache
-    await CustomersCache.set(await getCustomersFromDBWithoutQuery());
-    // revalidate the path
-    revalidatePath("/customers");
+    // // update the customers data cache
+    // await CustomersCache.set(await getCustomersFromDBWithoutQuery());
+    // // revalidate the path
+    // revalidatePath("/customers");
 
     return {
       status: true,
-      total: Number(total),
     };
   } catch (error) {
     return {
@@ -170,30 +167,30 @@ export const getCustomers = async (
 ): Promise<ServerActionResponse<{ data: TDBCustomer[]; total: number }>> => {
   const { db, client } = await initializeDB();
   try {
-    // get cached customers count
-    let total = await CustomersCountCache.get();
-    if (!total) {
-      total = await getCustomersCountFromDB();
-      await CustomersCountCache.set(Number(total));
-    }
-    if (query?.trim() === "") {
-      // get cached customers
-      const customerData =
-        offset !== 0 || limit !== defaultLimit
-          ? await getCustomersFromDBWithoutQuery(offset, limit)
-          : await CustomersCache.get();
+    // // get cached customers count
+    // let total = await CustomersCountCache.get();
+    // if (!total) {
+    //   total = await getCustomersCountFromDB();
+    //   await CustomersCountCache.set(Number(total));
+    // }
+    // if (query?.trim() === "") {
+    //   // get cached customers
+    //   const customerData =
+    //     offset !== 0 || limit !== defaultLimit
+    //       ? await getCustomersFromDBWithoutQuery(offset, limit)
+    //       : await CustomersCache.get();
 
-      // if cached customers are empty, get initial customers from db
-      const customersDataDB = customerData?.length
-        ? customerData
-        : await getCustomersFromDBWithoutQuery();
-      await CustomersCache.set(customersDataDB);
+    //   // if cached customers are empty, get initial customers from db
+    //   const customersDataDB = customerData?.length
+    //     ? customerData
+    //     : await getCustomersFromDBWithoutQuery();
+    //   await CustomersCache.set(customersDataDB);
 
-      return {
-        data: customersDataDB,
-        total: Number(total),
-      };
-    }
+    //   return {
+    //     data: customersDataDB,
+    //     total: Number(total),
+    //   };
+    // }
 
     // get customers from db if not cached using fuzzy search
     const customerData = await db
@@ -224,7 +221,7 @@ export const getCustomers = async (
 
     return {
       data: customerData,
-      total: Number(customerData[0]?.total),
+      total: Number(customerData[0]?.total ?? 0),
     };
   } catch (error) {
     console.log(error);

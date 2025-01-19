@@ -1,18 +1,21 @@
 import { getProductsCountFromDB } from "@/actions/products";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { products } from "@/db/schema";
-import { ProductsCountCache } from "@/lib/cache/products";
+// import { ProductsCountCache } from "@/lib/cache/products";
 import { initializeDB } from "@/lib/db";
 import { and, count, eq, isNull, sql } from "drizzle-orm";
 import { Amphora } from "lucide-react";
 
 export default async function Page() {
   const { client, db } = await initializeDB();
-  let totalProducts = await ProductsCountCache.get();
-  if (!totalProducts) {
-    totalProducts = await getProductsCountFromDB();
-    await ProductsCountCache.set(totalProducts);
-  }
+  // let totalProducts = await ProductsCountCache.get();
+  // if (!totalProducts) {
+  //   totalProducts = await getProductsCountFromDB();
+  //   await ProductsCountCache.set(totalProducts);
+  // }
+  const totalProducts = await db
+    .select({ count: count(products.id) })
+    .from(products);
   const newProductsThisMonth = await db
     .select({ count: count(products.id) })
     .from(products)
@@ -35,7 +38,9 @@ export default async function Page() {
         <Amphora />
       </CardHeader>
       <CardContent className="space-y-1">
-        <h1 className="sm:text-4xl text-3xl font-semibold">{totalProducts}</h1>
+        <h1 className="sm:text-4xl text-3xl font-semibold">
+          {totalProducts[0].count}
+        </h1>
         <p className="text-muted-foreground">
           <span className="text-green-500">
             +{newProductsThisMonth[0].count}

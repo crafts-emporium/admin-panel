@@ -7,7 +7,7 @@ import {
   TDBVariant,
   variants,
 } from "@/db/schema";
-import { ProductsCache, ProductsCountCache } from "@/lib/cache/products";
+// import { ProductsCache, ProductsCountCache } from "@/lib/cache/products";
 import { initializeDB } from "@/lib/db";
 import { ServerActionResponse } from "@/lib/utils";
 import { productSchema, TProduct } from "@/schema/products";
@@ -23,7 +23,7 @@ import {
   sql,
   sum,
 } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+// import { revalidatePath } from "next/cache";
 import {
   ProductSale,
   TDBProductWithVariants,
@@ -85,7 +85,6 @@ export const createProduct = async (
 ): Promise<
   ServerActionResponse<{
     data: TDBProduct & { variants: TDBVariant[] };
-    total: number;
   }>
 > => {
   const { db, client } = await initializeDB();
@@ -125,23 +124,22 @@ export const createProduct = async (
       return { data: { ...product[0], variants: variantsDB } };
     });
 
-    // update the products cache if total number of cached products count is less than limit
-    await ProductsCache.set(await getProductsFromDBWithoutQuery());
+    // // update the products cache if total number of cached products count is less than limit
+    // await ProductsCache.set(await getProductsFromDBWithoutQuery());
 
-    let total = await ProductsCountCache.get();
-    if (!total) {
-      total = await getProductsCountFromDB();
-      await ProductsCountCache.set(total);
-    } else {
-      total = await ProductsCountCache.incr();
-    }
+    // let total = await ProductsCountCache.get();
+    // if (!total) {
+    //   total = await getProductsCountFromDB();
+    //   await ProductsCountCache.set(total);
+    // } else {
+    //   total = await ProductsCountCache.incr();
+    // }
 
-    // revalidate the path
-    revalidatePath("/products");
+    // // revalidate the path
+    // revalidatePath("/products");
 
     return {
       data: res.data,
-      total: (await ProductsCountCache.get()) || 0,
     };
   } catch (error) {
     console.log(error);
@@ -163,39 +161,6 @@ export const getProducts = async (
 > => {
   const { db, client } = await initializeDB();
   try {
-    // get cached products count
-    let total = await ProductsCountCache.get();
-    if (!total) {
-      total = await getProductsCountFromDB();
-      await ProductsCountCache.set(Number(total));
-    }
-
-    if (query?.trim() === "") {
-      if (offset !== 0 || limit !== defaultLimit) {
-        return {
-          data: await getProductsFromDBWithoutQuery(offset, limit),
-          total: Number(total),
-        };
-      }
-      // get cached products
-      const cachedProducts = await ProductsCache.get();
-
-      // if  products are empty, get initial products from db
-      const productsDataDB = cachedProducts?.length
-        ? cachedProducts
-        : await getProductsFromDBWithoutQuery();
-
-      // update the products cache if its empty
-      !cachedProducts && (await ProductsCache.set(productsDataDB));
-
-      return {
-        data: productsDataDB,
-        total: Number(total),
-      };
-    }
-
-    // const totalCount
-
     // get products from db if not cached using fuzzy search
     const productsData = await db
       .select({
@@ -222,12 +187,14 @@ export const getProducts = async (
       .innerJoin(variants, eq(variants.productId, products.id))
       .where(
         and(
-          gt(sql`SIMILARITY(title, ${query})`, 0.3),
+          ...(query ? [gt(sql`SIMILARITY(title, ${query})`, 0.3)] : []),
           isNull(products.deletedAt),
           isNull(variants.deletedAt),
         ),
       )
-      .orderBy(desc(sql`SIMILARITY(title, ${query})`))
+      .orderBy(
+        query ? desc(sql`SIMILARITY(title, ${query})`) : desc(products.id),
+      )
       .groupBy(products.id)
       .limit(limit)
       .offset(offset * limit);
@@ -236,7 +203,7 @@ export const getProducts = async (
 
     return {
       data: productsData,
-      total: Number(productsData[0]?.total || 0),
+      total: Number(productsData[0]?.total ?? 0),
     };
   } catch (error) {
     console.log(error);
@@ -350,11 +317,11 @@ export const updateProduct = async ({
         );
       });
 
-      console.log({
-        updatedVariants,
-        addedVariants,
-        removedVariants,
-      });
+      // console.log({
+      //   updatedVariants,
+      //   addedVariants,
+      //   removedVariants,
+      // });
 
       await trx
         .update(products)
@@ -434,8 +401,8 @@ export const updateProduct = async ({
       );
     });
 
-    await ProductsCache.set(await getProductsFromDBWithoutQuery());
-    revalidatePath("/products");
+    // await ProductsCache.set(await getProductsFromDBWithoutQuery());
+    // revalidatePath("/products");
 
     return { message: "Product updated successfully" };
   } catch (error) {
@@ -457,9 +424,9 @@ export const deleteProduct = async (
       .update(products)
       .set({ deletedAt: sql`CURRENT_DATE` })
       .where(eq(products.id, id));
-    await ProductsCache.set(await getProductsFromDBWithoutQuery());
-    await ProductsCountCache.decr();
-    revalidatePath("/products");
+    // await ProductsCache.set(await getProductsFromDBWithoutQuery());
+    // await ProductsCountCache.decr();
+    // revalidatePath("/products");
     return { message: "Product deleted successfully" };
   } catch (error) {
     return {

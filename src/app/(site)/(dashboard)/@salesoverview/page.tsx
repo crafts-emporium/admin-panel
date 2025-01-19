@@ -33,7 +33,7 @@ export default async function Page() {
         ds.day as date,
         COALESCE(SUM(pi.quantity),0) as quantity
       FROM date_series ds
-      LEFT JOIN purchases p ON EXTRACT(DAY FROM ds.day) = EXTRACT(DAY FROM p.created_at)
+      LEFT JOIN purchases p ON ds.day = DATE_TRUNC('day', p.created_at)
       LEFT JOIN purchase_items pi ON pi.purchase_id = p.id
       GROUP BY ds.day
       ORDER BY ds.day;  

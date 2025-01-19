@@ -7,13 +7,13 @@ import {
   purchases,
   variants,
 } from "@/db/schema";
-import { SalesCache, SalesCountCache } from "@/lib/cache/sales";
+// import { SalesCache, SalesCountCache } from "@/lib/cache/sales";
 import { initializeDB } from "@/lib/db";
 import { ServerActionResponse } from "@/lib/utils";
 import { saleSchema, TSale } from "@/schema/sale";
 import { TDBSale } from "@/types/sale";
 import { and, count, desc, eq, gt, isNull, or, sql } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+// import { revalidatePath } from "next/cache";
 
 const defaultLimit = 10;
 
@@ -105,13 +105,13 @@ export async function createSale(
       //   return purchase[0];
     });
 
-    //update the sales data cache
-    await SalesCache.set(await getSalesFromDBWithoutQuery(10, 0));
-    //update the sales count cache
-    await SalesCountCache.set(await getSalesCountFromDB());
+    // //update the sales data cache
+    // await SalesCache.set(await getSalesFromDBWithoutQuery(10, 0));
+    // //update the sales count cache
+    // await SalesCountCache.set(await getSalesCountFromDB());
 
-    // revalidate the path
-    revalidatePath("/sales");
+    // // revalidate the path
+    // revalidatePath("/sales");
     return {
       message: "Sale created successfully",
     };
@@ -132,32 +132,6 @@ export async function getSales(
 ): Promise<ServerActionResponse<{ data: TDBSale[]; total: number }>> {
   const { db, client } = await initializeDB();
   try {
-    let total = await SalesCountCache.get();
-    if (!total) {
-      total = await getSalesCountFromDB();
-      await SalesCountCache.set(total);
-    }
-    if (query.trim() === "") {
-      if (offset !== 0 || limit !== defaultLimit) {
-        return {
-          data: await getSalesFromDBWithoutQuery(limit, offset),
-          total: Number(total),
-        };
-      }
-
-      const cachedSales = await SalesCache.get();
-      const salesData = cachedSales?.length
-        ? cachedSales
-        : await getSalesFromDBWithoutQuery();
-
-      !cachedSales && (await SalesCache.set(salesData));
-
-      return {
-        data: salesData,
-        total: Number(total),
-      };
-    }
-
     const salesData = await db
       .select({
         id: purchases.id,
@@ -174,20 +148,26 @@ export async function getSales(
       .leftJoin(customers, eq(purchases.customerId, customers.id))
       .where(
         and(
-          or(
-            gt(sql`SIMILARITY(${purchases.id}::TEXT, ${query})`, 0),
-            gt(sql`SIMILARITY(${customers.name}, ${query})`, 0),
-          ),
+          ...(query
+            ? [
+                or(
+                  gt(sql`SIMILARITY(${purchases.id}::TEXT, ${query})`, 0),
+                  gt(sql`SIMILARITY(${customers.name}, ${query})`, 0),
+                ),
+              ]
+            : []),
           isNull(purchases.deletedAt),
         ),
       )
       .orderBy(
-        sql`
-            GREATEST(
-                SIMILARITY(${purchases.id}::TEXT, ${query}),
-                SIMILARITY(${customers.name}, ${query})
-            )
-        `,
+        query
+          ? desc(sql`
+        GREATEST(
+            SIMILARITY(${purchases.id}::TEXT, ${query}),
+            SIMILARITY(${customers.name}, ${query})
+        )
+    `)
+          : desc(purchases.id),
       )
       .groupBy(purchases.id, customers.id)
       .limit(limit)
@@ -195,7 +175,7 @@ export async function getSales(
 
     return {
       data: salesData,
-      total: Number(total[0]?.total),
+      total: Number(salesData[0]?.total),
     };
   } catch (error) {
     console.log(error);

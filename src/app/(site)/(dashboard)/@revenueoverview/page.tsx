@@ -31,11 +31,12 @@ export default async function Page() {
         ds.day AS date,
         COALESCE(SUM(p.discounted_price), 0) AS revenue
       FROM date_series ds
-      LEFT JOIN purchases p ON EXTRACT(DAY FROM p.created_at) = EXTRACT(DAY FROM ds.day)
+      LEFT JOIN purchases p ON ds.day = DATE_TRUNC('day', p.created_at)
       GROUP BY ds.day
       ORDER BY ds.day;
     `,
   );
+
   await client.end();
   return (
     <Card>
