@@ -13,14 +13,14 @@ import {
 } from "drizzle-orm/pg-core";
 import { nanoid } from "nanoid";
 
+const CURRENT_TIMESTAMP = sql`timezone('Asia/Kolkata', now())`;
+
 export const customers = pgTable("customers", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 40 }).notNull(),
   phone: varchar("phone", { length: 15 }),
   address: text("address"),
-  createdAt: timestamp("created_at")
-    .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
+  createdAt: timestamp("created_at").notNull().default(CURRENT_TIMESTAMP),
 });
 
 export const products = pgTable("products", {
@@ -29,9 +29,7 @@ export const products = pgTable("products", {
   description: text("description"),
   deletedAt: date("deleted_at").default(sql`NULL`),
   image: text("image"),
-  createdAt: timestamp("created_at")
-    .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
+  createdAt: timestamp("created_at").notNull().default(CURRENT_TIMESTAMP),
 });
 
 export const variants = pgTable("variants", {
@@ -46,9 +44,7 @@ export const variants = pgTable("variants", {
   price: integer("price").notNull(),
   inch: real("inch"),
   feet: real("feet"),
-  createdAt: timestamp("created_at")
-    .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
+  createdAt: timestamp("created_at").notNull().default(CURRENT_TIMESTAMP),
   deletedAt: timestamp("deleted_at").default(sql`NULL`),
 });
 
@@ -74,9 +70,7 @@ export const purchases = pgTable("purchases", {
     .notNull()
     .default(sql`0`),
   deletedAt: timestamp("deleted_at").default(sql`NULL`),
-  createdAt: timestamp("created_at")
-    .notNull()
-    .default(sql`CURRENT_TIMESTAMP`),
+  createdAt: timestamp("created_at").notNull().default(CURRENT_TIMESTAMP),
 });
 
 export type TDBCustomer = typeof customers.$inferSelect;

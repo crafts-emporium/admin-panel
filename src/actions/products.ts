@@ -115,6 +115,9 @@ export const createProduct = async (
                 quantity: Number(variant.quantity),
                 inch: Number(variant.inch),
                 feet: Number(variant.feet),
+                costPrice: Number(variant.costPrice),
+                msp: Number(variant.msp),
+                description: variant.description,
               })
               .returning()
           )[0];
