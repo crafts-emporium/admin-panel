@@ -12,7 +12,7 @@ export default function useUploadImage() {
   const upload = async (
     key: string,
     mimeType: string,
-    file: File,
+    file: File
   ): Promise<UploadStatus> => {
     const resp = await getPreSignedMediaUrl(key, mimeType);
 
@@ -71,7 +71,7 @@ export default function useUploadImage() {
 
           ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
 
-          const dataUrl = canvas.toDataURL(file.type, "0.5");
+          const dataUrl = canvas.toDataURL(file.type, 0.5);
 
           const byteCharacters = atob(dataUrl.split(",")[1]);
           const byteArray = new Uint8Array(byteCharacters.length);

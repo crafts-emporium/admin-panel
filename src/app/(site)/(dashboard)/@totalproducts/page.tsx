@@ -6,6 +6,8 @@ import { initializeDB } from "@/lib/db";
 import { and, count, eq, isNull, sql } from "drizzle-orm";
 import { Amphora } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 export default async function Page() {
   const { client, db } = await initializeDB();
   // let totalProducts = await ProductsCountCache.get();
@@ -23,10 +25,10 @@ export default async function Page() {
       and(
         eq(
           sql`EXTRACT(MONTH FROM ${products.createdAt})`,
-          sql`EXTRACT(MONTH FROM CURRENT_DATE)`,
+          sql`EXTRACT(MONTH FROM CURRENT_DATE)`
         ),
-        isNull(products.deletedAt),
-      ),
+        isNull(products.deletedAt)
+      )
     );
 
   await client.end();

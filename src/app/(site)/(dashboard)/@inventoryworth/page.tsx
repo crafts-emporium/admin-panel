@@ -5,6 +5,8 @@ import { initializeDB } from "@/lib/db";
 import { eq, sql, sum } from "drizzle-orm";
 import { BadgeDollarSign } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 export default async function Page() {
   const { client, db } = await initializeDB();
   const totalInventoryWorth = await db
