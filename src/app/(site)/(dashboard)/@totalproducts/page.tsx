@@ -17,7 +17,8 @@ export default async function Page() {
   // }
   const totalProducts = await db
     .select({ count: count(products.id) })
-    .from(products);
+    .from(products)
+    .where(isNull(products.deletedAt));
   const newProductsThisMonth = await db
     .select({ count: count(products.id) })
     .from(products)
