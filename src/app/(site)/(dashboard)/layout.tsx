@@ -28,17 +28,17 @@ export default function Layout({
         {totalproducts}
         {totalrevenue}
         {totalsales}
-        {totalcustomers}
+        {/* {totalcustomers} */}
         {inventoryworth}
       </section>
-      <section className="grid @3xl:grid-cols-2 gap-4">
+      {/* <section className="grid @3xl:grid-cols-2 gap-4">
         {revenueoverview}
         {salesoverview}
-      </section>
-      <section className="grid @3xl:grid-cols-2 gap-4">
+      </section> */}
+      {/* <section className="grid @3xl:grid-cols-2 gap-4">
         {topproducts}
         {topcustomers}
-      </section>
+      </section> */}
     </div>
   );
 }
